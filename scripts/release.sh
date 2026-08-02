@@ -5,12 +5,12 @@
 #   The released version is taken from package.json. Bump it first, e.g.:
 #   npm version patch --no-git-tag-version && git commit -am "Bump version"
 #
-# Requires: gh (authenticated), repos zoltanf/tranzl and zoltanf/homebrew-tap.
+# Requires: gh (authenticated), repos zoltanf/tranzl and zoltanf/homebrew-tranzl.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 REPO="zoltanf/tranzl"
-TAP_REPO="zoltanf/homebrew-tap"
+TAP_REPO="zoltanf/homebrew-tranzl"
 
 VERSION=$(node -p "require('./package.json').version")
 TAG="v$VERSION"
@@ -39,7 +39,7 @@ gh release create "$TAG" "$ZIP" \
 
 Install/upgrade via Homebrew:
 \`\`\`
-brew install --cask zoltanf/tap/tranzl
+brew install --cask zoltanf/tranzl/tranzl
 \`\`\`"
 
 echo "==> Updating Homebrew tap ($TAP_REPO)"
@@ -89,4 +89,4 @@ git -C "$TAP_DIR" push
 rm -rf "$TAP_DIR"
 
 echo "==> Done: Tranzl $VERSION released."
-echo "    Users install with: brew install --cask zoltanf/tap/tranzl --no-quarantine"
+echo "    Users install with: brew install --cask zoltanf/tranzl/tranzl"

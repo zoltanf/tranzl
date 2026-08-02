@@ -10,7 +10,7 @@ A private, on-device translator and text editor for Apple Silicon Macs, powered 
 ## Install (Homebrew)
 
 ```bash
-brew install --cask zoltanf/tap/tranzl
+brew install --cask zoltanf/tranzl/tranzl
 ```
 
 The app is ad-hoc signed (not notarized); the cask removes the macOS quarantine attribute after install so it can launch — only install if you trust this tap.
