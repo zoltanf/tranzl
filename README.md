@@ -10,10 +10,10 @@ A private, on-device translator and text editor for Apple Silicon Macs, powered 
 ## Install (Homebrew)
 
 ```bash
-brew install --cask zoltanf/tap/tranzl --no-quarantine
+brew install --cask zoltanf/tap/tranzl
 ```
 
-`--no-quarantine` is required because the app is ad-hoc signed, not notarized. If you installed without it, unblock once with `xattr -dr com.apple.quarantine /Applications/Tranzl.app`.
+The app is ad-hoc signed (not notarized); the cask removes the macOS quarantine attribute after install so it can launch — only install if you trust this tap.
 
 On first launch, choose a backend. "Embedded model" downloads Gemma 4 E4B (~4.6 GB) once into `~/Library/Application Support/tranzl/models/`.
 

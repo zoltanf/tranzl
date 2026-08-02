@@ -39,7 +39,7 @@ gh release create "$TAG" "$ZIP" \
 
 Install/upgrade via Homebrew:
 \`\`\`
-brew install --cask zoltanf/tap/tranzl --no-quarantine
+brew install --cask zoltanf/tap/tranzl
 \`\`\`"
 
 echo "==> Updating Homebrew tap ($TAP_REPO)"
@@ -57,23 +57,25 @@ cask "tranzl" do
   homepage "https://github.com/$REPO"
 
   depends_on arch: :arm64
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Tranzl.app"
+
+  # Tranzl is ad-hoc signed (not notarized); without this Gatekeeper refuses
+  # to launch it. Disclosed in the caveats below.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Tranzl.app"]
+  end
 
   zap trash: [
     "~/Library/Application Support/tranzl",
   ]
 
   caveats <<~EOS
-    Tranzl is ad-hoc signed (not notarized), so macOS Gatekeeper blocks it
-    when installed with quarantine. Install or upgrade with:
-
-      brew install --cask zoltanf/tap/tranzl --no-quarantine
-
-    If it was installed without that flag, unblock it once with:
-
-      xattr -dr com.apple.quarantine /Applications/Tranzl.app
+    Tranzl is ad-hoc signed (not notarized). This cask removes the macOS
+    quarantine attribute from the installed app so it can launch; only
+    install it if you trust this tap.
 
     On first use, Tranzl offers to download the Gemma 4 E4B model (~4.6 GB),
     which is subject to Google's Gemma Terms of Use.
