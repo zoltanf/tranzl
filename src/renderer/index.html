@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+  <title>Tranzl</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="ribbon">
+    <div class="tabbar">
+      <div class="brand">Tranzl</div>
+      <button class="tab active" data-tab="tab-translate">Translate</button>
+      <button class="tab" data-tab="tab-model">Settings</button>
+      <button class="tab" data-tab="tab-about">About</button>
+    </div>
+
+    <div class="ribbon-panel" id="tab-translate">
+      <div class="group">
+        <div class="group-controls">
+          <select id="target-language">
+            <option selected>English</option>
+            <option>German</option>
+            <option>Hungarian</option>
+            <option>French</option>
+            <option>Spanish</option>
+            <option>Italian</option>
+            <option>Portuguese</option>
+            <option>Dutch</option>
+            <option>Polish</option>
+            <option>Czech</option>
+            <option>Croatian</option>
+            <option>Serbian (Latin)</option>
+            <option>Serbian (Cyrillic)</option>
+            <option>Romanian</option>
+            <option>Turkish</option>
+            <option>Russian</option>
+            <option>Ukrainian</option>
+            <option>Chinese (Simplified)</option>
+            <option>Japanese</option>
+            <option>Korean</option>
+            <option>Arabic</option>
+            <option>Armenian</option>
+          </select>
+        </div>
+        <div class="group-caption">Translate to</div>
+      </div>
+      <div class="separator"></div>
+      <div class="group">
+        <div class="group-controls">
+          <select id="style-select">
+            <option value="translate" selected>Just translate</option>
+            <option value="proofread">Proofread &amp; correct</option>
+            <option value="professional">Make professional</option>
+            <option value="casual">Make casual</option>
+            <option value="simplify">Simplify &amp; clarify</option>
+            <option value="custom">Custom prompt…</option>
+          </select>
+          <button id="custom-edit-btn" class="ghost hidden" title="Edit custom prompt">Edit…</button>
+          <label class="checkbox" id="no-translate-label" title="Apply the style in the original language instead of translating">
+            <input type="checkbox" id="no-translate" disabled />
+            Don't translate
+          </label>
+        </div>
+        <div class="group-caption">Style</div>
+      </div>
+      <div class="separator"></div>
+      <div class="group">
+        <div class="group-controls">
+          <label class="checkbox" title="When pasted text has hard-wrapped lines (e.g. copied from a PDF or email), join them back into flowing paragraphs before translating">
+            <input type="checkbox" id="unwrap-paste" checked />
+            Fix line breaks on paste
+          </label>
+        </div>
+        <div class="group-caption">Paste</div>
+      </div>
+    </div>
+
+    <div class="ribbon-panel hidden" id="tab-model">
+      <div class="group">
+        <div class="group-controls">
+          <span id="backend-label" class="value-label">—</span>
+          <button id="backend-btn" class="ghost">Change…</button>
+        </div>
+        <div class="group-caption">Backend</div>
+      </div>
+      <div class="separator"></div>
+      <div class="group" id="model-picker">
+        <div class="group-controls">
+          <select id="model-select">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div class="group-caption">Model</div>
+      </div>
+      <div class="separator" id="model-picker-sep"></div>
+      <div class="group">
+        <div class="group-controls effort">
+          <input id="effort" type="range" min="0" max="2" step="1" value="1" />
+          <span id="effort-label">Balanced</span>
+        </div>
+        <div class="group-caption">Effort / Thinking</div>
+      </div>
+      <div class="separator"></div>
+      <div class="group">
+        <div class="group-controls">
+          <select id="theme-select">
+            <option value="system" selected>Auto (system)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="group-caption">Appearance</div>
+      </div>
+    </div>
+
+    <div class="ribbon-panel hidden" id="tab-about">
+      <div class="group">
+        <div class="group-controls">
+          <span class="value-label">Tranzl 0.1.0 — private, on-device translation</span>
+        </div>
+        <div class="group-caption">Version</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="panes">
+    <section class="pane">
+      <div class="pane-header">
+        <span>Source text</span>
+        <div class="pane-header-actions">
+          <button id="undo-unwrap-btn" class="ghost hidden" title="Restore the original line breaks from the paste">Undo line-break fix</button>
+          <button id="history-btn" class="ghost" title="Previously translated texts">History</button>
+          <button id="paste-btn" class="ghost" title="Replace with clipboard contents and translate">Paste</button>
+          <button id="clear-btn" class="ghost">Clear</button>
+        </div>
+      </div>
+      <textarea id="source" placeholder="Type or paste text to translate…" title="⌘↩ runs immediately" spellcheck="false"></textarea>
+    </section>
+    <section class="pane">
+      <div class="pane-header">
+        <span>Result</span>
+        <button id="copy-btn" class="ghost">Copy</button>
+      </div>
+      <div id="thinking-box" class="thinking-box hidden">
+        <button id="thinking-toggle" class="thinking-toggle">Thinking ▾</button>
+        <div id="thinking-content" class="thinking-content"></div>
+      </div>
+      <textarea id="output" readonly placeholder="Result appears here…" spellcheck="false"></textarea>
+    </section>
+  </main>
+
+  <section id="about-view" class="about-view hidden">
+    <div class="about-content">
+      <h1>Tranzl</h1>
+      <p>
+        Tranzl is a translation and text-editing tool that runs entirely on your Mac.
+        Type or paste text and it is translated as you go — or proofread, rewritten in a
+        different tone, simplified, or transformed with your own custom prompt. Nothing you
+        type ever leaves your machine: all processing happens locally.
+      </p>
+      <h2>How it works</h2>
+      <p>
+        Translations are produced by a large language model running on your own hardware,
+        through one of three interchangeable backends:
+      </p>
+      <ul>
+        <li><strong>Embedded</strong> — Google's Gemma 4 E4B model, downloaded once and run
+          inside Tranzl with Metal acceleration on Apple Silicon (via llama.cpp). No other
+          software needed.</li>
+        <li><strong>LM Studio</strong> — uses a running LM Studio server at 127.0.0.1:1234
+          and whatever model it has loaded.</li>
+        <li><strong>Ollama</strong> — uses a running Ollama server at 127.0.0.1:11434 and
+          the models pulled with it.</li>
+      </ul>
+      <h2>Application license</h2>
+      <p>
+        Tranzl is free software, released under the
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public
+        License, version 3 or later (GPL-3.0-or-later)</a>. You may redistribute and/or modify
+        it under the terms of that license. The full license text is included in the
+        <code>LICENSE</code> file. This program is distributed in the hope that it will be
+        useful, but WITHOUT ANY WARRANTY; without even the implied warranty of merchantability
+        or fitness for a particular purpose.
+      </p>
+      <h2>Model license</h2>
+      <p>
+        The embedded model, <strong>Gemma 4 E4B</strong>, is provided by Google and is not
+        covered by Tranzl's GPL license. It is downloaded separately on first use and is
+        subject to Google's
+        <a href="https://ai.google.dev/gemma/terms" target="_blank">Gemma Terms of Use</a>,
+        including the
+        <a href="https://ai.google.dev/gemma/prohibited_use_policy" target="_blank">Gemma
+        Prohibited Use Policy</a>. By downloading and using the embedded model you agree to
+        those terms. Gemma is provided under and subject to the Gemma Terms of Use.
+        Models used through LM Studio or Ollama are governed by their own respective licenses.
+      </p>
+      <h2>Third-party components</h2>
+      <ul>
+        <li><a href="https://github.com/withcatai/node-llama-cpp" target="_blank">node-llama-cpp</a>
+          and <a href="https://github.com/ggml-org/llama.cpp" target="_blank">llama.cpp</a> — MIT License</li>
+        <li><a href="https://www.electronjs.org" target="_blank">Electron</a> — MIT License</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="statusbar">
+    <div id="status" class="status">Starting…</div>
+    <div class="spacer"></div>
+    <div id="status-stats" class="statusbar-right"></div>
+    <div id="statusbar-backend" class="statusbar-right"></div>
+  </footer>
+
+  <div id="setup-overlay" class="overlay hidden">
+    <div class="dialog">
+      <h1>Welcome to Tranzl</h1>
+      <p class="dialog-intro">Choose how translations run on this Mac. You can change this later.</p>
+      <div class="setup-choices" id="setup-choices">
+        <button class="setup-choice" id="choose-local">
+          <strong id="choose-local-title">Embedded model (recommended)</strong>
+          <span id="choose-local-desc">Downloads Gemma 4 E4B once and runs fully inside Tranzl. No other apps needed.</span>
+        </button>
+        <button class="setup-choice" id="choose-lmstudio">
+          <strong>LM Studio</strong>
+          <span>Uses your local LM Studio server at 127.0.0.1:1234 and whatever model it has loaded.</span>
+        </button>
+        <button class="setup-choice" id="choose-ollama">
+          <strong>Ollama</strong>
+          <span>Uses your local Ollama server at 127.0.0.1:11434 and the models you've pulled with it.</span>
+        </button>
+      </div>
+      <div class="setup-progress hidden" id="setup-progress">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-text" id="progress-text">Starting download…</div>
+      </div>
+      <div class="dialog-error hidden" id="setup-error"></div>
+      <div class="dialog-actions">
+        <button class="ghost hidden" id="setup-close">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="prompt-overlay" class="overlay hidden">
+    <div class="dialog">
+      <h1>Custom prompt</h1>
+      <p class="dialog-intro">Describe what should be done with the text. Combined with translation unless "Don't translate" is checked.</p>
+      <textarea id="custom-prompt-input" class="prompt-input" rows="4"
+        placeholder="e.g. Rewrite as a polite customer support reply and keep it under 100 words…"></textarea>
+      <div class="prompt-history-wrap">
+        <div class="prompt-history-title">Recent prompts</div>
+        <div id="prompt-history" class="prompt-history"></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="ghost" id="prompt-cancel">Cancel</button>
+        <button class="primary" id="prompt-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-overlay" class="overlay hidden">
+    <div class="dialog">
+      <h1>Input history</h1>
+      <input id="history-search" class="history-search" type="text" placeholder="Search history…" spellcheck="false" />
+      <div id="history-list" class="history-list"></div>
+      <div class="dialog-actions">
+        <button class="ghost" id="history-clear">Clear all</button>
+        <span class="spacer"></span>
+        <button class="ghost" id="history-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="unwrap.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

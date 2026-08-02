@@ -1,0 +1,28 @@
+{
+  "name": "tranzl",
+  "version": "0.1.0",
+  "description": "Local LLM translator — embedded Gemma model or LM Studio",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --asar=false --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/build' --ignore='^/scripts'",
+    "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/"
+  },
+  "author": "Zoltan Fekete",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zoltanf/tranzl.git"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.4",
+    "electron": "^33.4.11"
+  },
+  "dependencies": {
+    "node-llama-cpp": "^3"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "node-llama-cpp@3.19.1": true
+  }
+}
