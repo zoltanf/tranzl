@@ -1,12 +1,14 @@
 {
   "name": "tranzl",
-  "version": "0.1.0",
-  "description": "Local LLM translator — embedded Gemma model or LM Studio",
+  "version": "0.2.0",
+  "description": "Private, on-device translation, text editing and chat",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --asar=false --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/build' --ignore='^/scripts'",
-    "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/"
+    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app",
+    "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/",
+    "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs",
+    "test:electron": "electron tests/chat-ui.cjs && electron tests/attachments-electron.cjs"
   },
   "author": "Zoltan Fekete",
   "license": "GPL-3.0-or-later",
@@ -19,7 +21,13 @@
     "electron": "^33.4.11"
   },
   "dependencies": {
-    "node-llama-cpp": "^3"
+    "@napi-rs/canvas": "^0.1.100",
+    "dompurify": "^3.4.16",
+    "mammoth": "^1.12.3",
+    "marked": "^18.0.14",
+    "node-llama-cpp": "^3",
+    "pdfjs-dist": "^4.10.38",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "allowScripts": {
     "electron@33.4.11": true,

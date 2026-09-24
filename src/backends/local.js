@@ -65,13 +65,17 @@ function ensureWorker() {
       req.onThought?.(msg.delta);
       return;
     }
+    if (msg.type === 'stats') { req.onStats?.(msg.stats); return; }
     pending.delete(msg.id);
-    if (msg.type === 'done') req.resolve({ translation: msg.translation, stats: msg.stats });
+    if (msg.type === 'counted') req.resolve(msg.tokens);
+    else if (msg.type === 'done') req.resolve({ translation: msg.translation, stats: msg.stats });
     else if (msg.type === 'aborted') req.reject(new Error('aborted'));
     else req.reject(new Error(msg.error));
   });
 
+  const currentWorker = worker;
   worker.on('exit', () => {
+    if (worker !== currentWorker) return;
     worker = null;
     lastStatus = { state: 'error', error: 'inference process exited' };
     onStatus?.(lastStatus);
@@ -93,17 +97,47 @@ function modelState() {
   return lastStatus;
 }
 
-function translate({ modelPath, systemPrompt, text, reasoning = false, signal, onChunk, onThought }) {
+function translate({ modelPath, systemPrompt, text, history = [], reasoning = false, maxTokens, signal, onChunk, onThought, onStats }) {
   return new Promise((resolve, reject) => {
+    signal.throwIfAborted();
     const id = ++workerSeq;
     const proc = ensureWorker();
-    pending.set(id, { resolve, reject, onChunk, onThought });
-    signal.addEventListener('abort', () => proc.postMessage({ type: 'abort', id }), { once: true });
-    proc.postMessage({ type: 'translate', id, modelPath, systemPrompt, text, reasoning });
+    const onAbort = () => proc.postMessage({ type: 'abort', id });
+    const settle = callback => value => {
+      signal.removeEventListener('abort', onAbort);
+      callback(value);
+    };
+    pending.set(id, { resolve: settle(resolve), reject: settle(reject), onChunk, onThought, onStats });
+    signal.addEventListener('abort', onAbort, { once: true });
+    try {
+      proc.postMessage({ type: 'translate', id, modelPath, systemPrompt, text, history, reasoning, maxTokens });
+    } catch (error) {
+      pending.delete(id);
+      settle(reject)(error);
+    }
   });
 }
 
+function countTokens({ modelPath, systemPrompt, messages, reasoning, signal }) {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const id = ++workerSeq;
+    pending.set(id, { resolve, reject });
+    ensureWorker().postMessage({ type: 'count', id, modelPath, systemPrompt, messages, reasoning });
+  }).then(tokens => { signal.throwIfAborted(); return tokens; });
+}
+
+async function release() {
+  if (pending.size) throw new Error('Wait for the current embedded translation to finish, then retry your attachment.');
+  if (!worker) return;
+  const previous = worker; worker = null;
+  lastStatus = { state: 'idle' };
+  await new Promise(resolve => { previous.once('exit', resolve); previous.kill(); });
+}
+
 module.exports = {
+  release,
+  countTokens,
   MODEL_LABEL,
   DOWNLOAD_SIZE_TEXT,
   isReady,

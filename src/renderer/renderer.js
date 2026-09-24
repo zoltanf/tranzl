@@ -52,6 +52,9 @@ const EFFORT_LABELS = ['Fast', 'Balanced', 'Thorough'];
 const PROMPT_HISTORY_MAX = 100;
 const BACKEND_NAMES = { local: 'Embedded', lmstudio: 'LM Studio', ollama: 'Ollama' };
 
+let translationImage = null;
+let imagePasteSeq = 0;
+const translationImagesEl = document.getElementById('translation-images');
 let debounceTimer = null;
 let requestSeq = 0;
 let lastRequestText = ''; // source text of the in-flight request, for history
@@ -59,12 +62,21 @@ let translating = false;
 let setupInfo = null;
 let modelLoadState = 'idle'; // embedded model: idle | loading | ready | error
 
+let lastOkStatus = 'Ready';
 function setStatus(text, kind = '') {
   statusEl.textContent = text;
   statusEl.className = `status ${kind}`;
   // Animate the brand gradient while the model is working
   document.body.classList.toggle('working', kind === 'busy');
+  if (kind === 'ok') lastOkStatus = text;
 }
+
+// Shared with chat.js: show a message in the status bar, or clear an error
+// by restoring the last idle text (only when no translation is in flight).
+window.tranzlStatus = (text, kind) => {
+  if (text || kind) return setStatus(text, kind);
+  if (!translating) setStatus(lastOkStatus, 'ok');
+};
 
 function setIdleStatus() {
   if (translating) return;
@@ -92,9 +104,11 @@ for (const tabBtn of document.querySelectorAll('.tab')) {
     for (const panel of document.querySelectorAll('.ribbon-panel')) {
       panel.classList.toggle('hidden', panel.id !== tabBtn.dataset.tab);
     }
-    // The About tab replaces the editor panes with the info page
+    // About and Settings replace the editor panes; Chat replaces them with the chat view
     const isAbout = tabBtn.dataset.tab === 'tab-about';
-    panesEl.classList.toggle('hidden', isAbout);
+    const isChat = tabBtn.dataset.tab === 'tab-chat';
+    panesEl.classList.toggle('hidden', tabBtn.dataset.tab !== 'tab-translate');
+    document.getElementById('chat-view').classList.toggle('hidden', !isChat);
     aboutViewEl.classList.toggle('hidden', !isAbout);
   });
 }
@@ -144,6 +158,7 @@ window.tranzl.onTranslationEvent((event) => {
   // Ignore events from superseded requests
   if (event.requestId !== requestSeq) return;
 
+  if (event.type === 'status') { setStatus(event.status, 'busy'); return; }
   if (event.type === 'chunk') {
     // The answer has started — fold the thinking drawer out of the way
     // (once per request; manual toggling afterwards is respected)
@@ -186,9 +201,10 @@ function formatStats(stats) {
   return parts.join(' · ');
 }
 
-function translate() {
+async function translate() {
   const text = sourceEl.value;
-  if (!text.trim()) {
+  if (!text.trim() && !translationImage) {
+    stopTranslation();
     outputEl.value = '';
     return;
   }
@@ -212,16 +228,52 @@ function translate() {
     'busy'
   );
 
-  window.tranzl.translate({
-    text,
-    targetLanguage: langEl.value,
-    requestId: seq,
-    model: modelEl.value || undefined,
-    effort: EFFORT_LEVELS[effortEl.value],
-    style: styleEl.value,
-    noTranslate: noTranslateEl.checked,
-    customPrompt: styleEl.value === 'custom' ? getCustomPrompt() : undefined,
-  });
+  try {
+    const result = await window.tranzl.translate({
+      text,
+      images: translationImage ? [translationImage] : [],
+      targetLanguage: langEl.value,
+      requestId: seq,
+      model: modelEl.value || undefined,
+      effort: EFFORT_LEVELS[effortEl.value],
+      style: styleEl.value,
+      noTranslate: noTranslateEl.checked,
+      customPrompt: styleEl.value === 'custom' ? getCustomPrompt() : undefined,
+    });
+    if (seq !== requestSeq) return;
+    if (result.ok && typeof result.translation === 'string') {
+      outputEl.value = result.translation; translating = false;
+      setStatus(result.model ? `Ready · ${result.model}` : 'Ready', 'ok');
+      statusStatsEl.textContent = formatStats(result.stats);
+    } else if (!result.ok) {
+      translating = false; setStatus(result.aborted ? 'Stopped' : result.error || 'Translation failed', result.aborted ? '' : 'error');
+    }
+  } catch (error) { if (seq === requestSeq) { translating = false; setStatus(error.message, 'error'); } }
+}
+
+function stopTranslation() {
+  clearTimeout(debounceTimer); requestSeq++; translating = false;
+  window.tranzl.cancelTranslate(); statusStatsEl.textContent = ''; setStatus('Ready', 'ok');
+}
+function renderTranslationImage() {
+  translationImagesEl.replaceChildren();
+  translationImagesEl.classList.toggle('hidden', !translationImage);
+  if (!translationImage) return;
+  const image = document.createElement('img'); image.src = `data:${translationImage.mime};base64,${translationImage.data}`; image.alt = 'Pasted image to translate'; window.attachmentPreview.enable(image);
+  const info = document.createElement('span'); info.textContent = 'Image text will be read by the model';
+  const remove = document.createElement('button'); remove.className = 'ghost'; remove.textContent = 'Remove image';
+  remove.onclick = () => { imagePasteSeq++; translationImage = null; stopTranslation(); renderTranslationImage(); retranslateNow(); };
+  translationImagesEl.append(image, info, remove);
+}
+async function pasteTranslationImage() {
+  const pasteSeq = ++imagePasteSeq;
+  const result = await window.tranzl.clipboardImage();
+  if (pasteSeq !== imagePasteSeq) return true;
+  if (result.error) { setStatus(result.error, 'error'); return true; }
+  if (!result.file) return false;
+  stopTranslation(); hideUnwrapUndo(); pendingPaste = false;
+  translationImage = result.file; renderTranslationImage(); retranslateNow(); sourceEl.focus();
+  return true;
 }
 
 function scheduleTranslate() {
@@ -438,6 +490,7 @@ function renderHistoryList() {
     date.textContent = new Date(entry.ts).toLocaleString();
     load.append(preview, date);
     load.addEventListener('click', () => {
+      imagePasteSeq++; translationImage = null; renderTranslationImage();
       hideUnwrapUndo();
       sourceEl.value = entry.text;
       historyOverlayEl.classList.add('hidden');
@@ -507,7 +560,12 @@ undoUnwrapBtn.addEventListener('click', () => {
 // input event through the unwrap path instead of the plain debounce
 let pendingPaste = false;
 
-sourceEl.addEventListener('paste', () => {
+sourceEl.addEventListener('paste', event => {
+  if ([...(event.clipboardData?.items || [])].some(item => item.type.startsWith('image/'))) {
+    event.preventDefault(); pendingPaste = false;
+    pasteTranslationImage().catch(error => setStatus(error.message, 'error'));
+    return;
+  }
   pendingPaste = true;
 });
 
@@ -630,6 +688,7 @@ unwrapPasteEl.addEventListener('change', () => {
 const pasteBtn = document.getElementById('paste-btn');
 
 pasteBtn.addEventListener('click', async () => {
+  try { if (await pasteTranslationImage()) return; } catch (error) { setStatus(error.message, 'error'); return; }
   const text = await navigator.clipboard.readText().catch(() => '');
   if (!text) return;
   clearTimeout(debounceTimer);
@@ -640,6 +699,7 @@ pasteBtn.addEventListener('click', async () => {
 });
 
 clearBtn.addEventListener('click', () => {
+  imagePasteSeq++; translationImage = null; renderTranslationImage(); stopTranslation();
   sourceEl.value = '';
   outputEl.value = '';
   hideUnwrapUndo();

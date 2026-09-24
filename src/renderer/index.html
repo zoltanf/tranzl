@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' data:" />
   <title>Tranzl</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -11,6 +11,7 @@
     <div class="tabbar">
       <div class="brand">Tranzl</div>
       <button class="tab active" data-tab="tab-translate">Translate</button>
+      <button class="tab" data-tab="tab-chat">Chat</button>
       <button class="tab" data-tab="tab-model">Settings</button>
       <button class="tab" data-tab="tab-about">About</button>
     </div>
@@ -66,6 +67,14 @@
       </div>
       <div class="separator"></div>
       <div class="group">
+        <div class="group-controls effort">
+          <input id="effort" aria-label="Translation thinking effort" type="range" min="0" max="2" step="1" value="1" />
+          <span id="effort-label">Balanced</span>
+        </div>
+        <div class="group-caption">Effort / Thinking</div>
+      </div>
+      <div class="separator"></div>
+      <div class="group">
         <div class="group-controls">
           <label class="checkbox" title="When pasted text has hard-wrapped lines (e.g. copied from a PDF or email), join them back into flowing paragraphs before translating">
             <input type="checkbox" id="unwrap-paste" checked />
@@ -76,6 +85,11 @@
       </div>
     </div>
 
+    <div class="ribbon-panel hidden" id="tab-chat">
+      <div class="group"><div class="group-controls"><button id="chat-new" class="primary">＋ New chat</button><button id="chat-clear" class="ghost">Clear all sessions</button></div><div class="group-caption">Sessions</div></div>
+      <div class="separator"></div>
+      <div class="group"><div class="group-controls"><select id="chat-effort" aria-label="Chat thinking effort"><option value="fast">Fast · thinking off</option><option value="balanced" selected>Balanced · model default</option><option value="thorough">Thorough · thinking on</option></select></div><div class="group-caption">Thinking effort · model dependent</div></div>
+    </div>
     <div class="ribbon-panel hidden" id="tab-model">
       <div class="group">
         <div class="group-controls">
@@ -95,14 +109,6 @@
       </div>
       <div class="separator" id="model-picker-sep"></div>
       <div class="group">
-        <div class="group-controls effort">
-          <input id="effort" type="range" min="0" max="2" step="1" value="1" />
-          <span id="effort-label">Balanced</span>
-        </div>
-        <div class="group-caption">Effort / Thinking</div>
-      </div>
-      <div class="separator"></div>
-      <div class="group">
         <div class="group-controls">
           <select id="theme-select">
             <option value="system" selected>Auto (system)</option>
@@ -117,7 +123,7 @@
     <div class="ribbon-panel hidden" id="tab-about">
       <div class="group">
         <div class="group-controls">
-          <span class="value-label">Tranzl 0.1.0 — private, on-device translation</span>
+          <span class="value-label">Tranzl 0.2.0 — private, on-device translation and chat</span>
         </div>
         <div class="group-caption">Version</div>
       </div>
@@ -131,11 +137,12 @@
         <div class="pane-header-actions">
           <button id="undo-unwrap-btn" class="ghost hidden" title="Restore the original line breaks from the paste">Undo line-break fix</button>
           <button id="history-btn" class="ghost" title="Previously translated texts">History</button>
-          <button id="paste-btn" class="ghost" title="Replace with clipboard contents and translate">Paste</button>
+          <button id="paste-btn" class="ghost" title="Paste text or an image from the clipboard and translate">Paste</button>
           <button id="clear-btn" class="ghost">Clear</button>
         </div>
       </div>
-      <textarea id="source" placeholder="Type or paste text to translate…" title="⌘↩ runs immediately" spellcheck="false"></textarea>
+      <div id="translation-images" class="translation-images hidden" aria-label="Image to translate"></div>
+      <textarea id="source" placeholder="Type text or paste text / an image to translate…" title="⌘↩ runs immediately" spellcheck="false"></textarea>
     </section>
     <section class="pane">
       <div class="pane-header">
@@ -148,6 +155,24 @@
       </div>
       <textarea id="output" readonly placeholder="Result appears here…" spellcheck="false"></textarea>
     </section>
+  </main>
+
+  <main id="chat-view" class="chat-view hidden">
+    <section class="chat-main" aria-label="Chat conversation">
+      <div class="chat-heading"><div><h1 id="chat-title">New chat</h1><span id="chat-model" class="chat-muted">Uses the model selected in Settings</span><div id="chat-compaction" class="chat-muted" role="status"></div></div></div>
+      <div id="chat-messages" class="chat-messages" role="log" aria-label="Messages"></div>
+      <div class="chat-compose">
+        <div id="chat-attachments" class="chat-attachments"></div>
+        <textarea id="chat-input" rows="3" aria-label="Message" placeholder="Ask anything, paste an image, or attach a file…"></textarea>
+        <div class="chat-compose-actions"><button id="chat-attach" class="ghost">＋ Attach files</button><span class="chat-muted">Enter to send · Shift+Enter for a new line</span><span class="spacer"></span><button id="chat-stop" class="hidden">Stop</button><button id="chat-send" class="primary">Send ↑</button></div>
+        <div class="chat-muted chat-file-hint" title="Up to 8 files per message. Text extraction: 120,000 characters per file. PDF: up to 100 pages, including up to 4 scanned pages. Audio: WAV, MP3 or FLAC with the Embedded backend. Images: PNG, JPEG or WebP.">Images · PDF · DOC/DOCX · CSV/XLS/XLSX · Audio (Embedded) · 20 MB/file</div>
+      </div>
+      <div id="chat-notice" class="chat-notice" role="status" aria-live="polite"></div>
+    </section>
+    <aside class="chat-sidebar" aria-label="Chat sessions"><div class="chat-sidebar-heading"><strong>Sessions</strong><span id="chat-count" class="chat-muted">0</span></div><input id="chat-search" class="history-search" placeholder="Search conversations…" aria-label="Search conversations"/><div id="chat-sessions" class="chat-sessions"></div><section class="chat-telemetry" aria-label="Context and generation statistics">
+      <div class="chat-context"><canvas id="chat-context-ring" width="104" height="104" role="img" aria-label="Context usage unavailable"></canvas><div><strong id="chat-context-percent">—</strong><span id="chat-context-detail">Context usage</span></div></div>
+      <details id="chat-stats-details" open><summary>Last response <span id="chat-stats-kind"></span></summary><dl class="chat-stats-grid"><div><dt>Speed</dt><dd id="chat-stat-speed">—</dd></div><div><dt id="chat-stat-input-label">Input tokens</dt><dd id="chat-stat-input">—</dd></div><div><dt>Output tokens</dt><dd id="chat-stat-output">—</dd></div><div><dt>Cached input</dt><dd id="chat-stat-cache">—</dd></div></dl><div id="chat-stat-timing" class="chat-muted"></div></details>
+    </section><span id="chat-storage" class="chat-muted">Saved locally · encrypted on disk</span></aside>
   </main>
 
   <section id="about-view" class="about-view hidden">
@@ -271,6 +296,10 @@
   </div>
 
   <script src="unwrap.js"></script>
+  <script src="attachmentPreview.js"></script>
   <script src="renderer.js"></script>
+  <script src="../../node_modules/marked/lib/marked.umd.js"></script>
+  <script src="../../node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="chat.js"></script>
 </body>
 </html>

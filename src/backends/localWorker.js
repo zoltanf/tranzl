@@ -30,10 +30,10 @@ function loadEngine(modelPath) {
       const llama = await getLlama();
       const model = await llama.loadModel({ modelPath });
       const context = await model.createContext({ contextSize: { max: 8192 } });
-      return { sequence: context.getSequence(), session: null, sessionReasoning: null };
+      return { model, sequence: context.getSequence(), session: null, sessionReasoning: null };
     })();
     enginePromise.then(
-      () => post({ type: 'status', state: 'ready' }),
+      (engine) => post({ type: 'status', state: 'ready', contextSize: engine.sequence.contextSize }),
       (err) => {
         post({ type: 'status', state: 'error', error: err.message });
         enginePromise = null; // allow retrying after a failed load
@@ -68,7 +68,7 @@ async function getSession(engine, reasoning) {
 
 // One prompt at a time; thought segments (when reasoning is on) are excluded
 // from onTextChunk and the returned text by the library.
-function handleTranslate({ id, modelPath, systemPrompt, text, reasoning }) {
+function handleTranslate({ id, modelPath, systemPrompt, text, history = [], reasoning, maxTokens }) {
   const abort = new AbortController();
   aborts.set(id, abort);
 
@@ -77,19 +77,30 @@ function handleTranslate({ id, modelPath, systemPrompt, text, reasoning }) {
       const engine = await loadEngine(modelPath);
       abort.signal.throwIfAborted();
       const session = await getSession(engine, reasoning);
-      // Fresh single-message history per request: translations stay
-      // independent and the context never fills up with past requests
-      session.setChatHistory([{ type: 'system', text: systemPrompt }]);
+      // Restore only this conversation; translations supply an empty history.
+      session.setChatHistory([{ type: 'system', text: systemPrompt }, ...history.map(m =>
+        m.role === 'user' ? { type: 'user', text: m.content } : { type: 'model', response: [m.content] }
+      )]);
       const before = engine.sequence.tokenMeter.getState();
       const t0 = Date.now();
-      let tFirst = 0;
+      let tFirst = 0, lastStats = 0;
+      const liveStats = () => {
+        const meter = engine.sequence.tokenMeter.getState();
+        const outputTokens = meter.usedOutputTokens - before.usedOutputTokens;
+        const seconds = (Date.now() - (tFirst || t0)) / 1000;
+        return { inputTokens: meter.usedInputTokens - before.usedInputTokens, inputLabel: 'Evaluated input', outputTokens,
+          contextTokens: engine.sequence.nextTokenIndex, contextSize: engine.sequence.contextSize,
+          contextEstimated: false, cachedTokens: null, tps: seconds > 0 ? outputTokens / seconds : null };
+      };
       const translation = await session.prompt(text, {
         temperature: 0.2,
+        maxTokens,
         signal: abort.signal,
         // Thought segments (reasoning mode) stream separately from the answer
         onResponseChunk: (chunk) => {
           if (!chunk.text) return;
           if (!tFirst) tFirst = Date.now();
+          if (Date.now() - lastStats >= 250) { post({ type: 'stats', id, stats: liveStats() }); lastStats = Date.now(); }
           if (chunk.type === 'segment' && chunk.segmentType === 'thought') {
             post({ type: 'thought', id, delta: chunk.text });
           } else {
@@ -107,6 +118,13 @@ function handleTranslate({ id, modelPath, systemPrompt, text, reasoning }) {
         translation,
         stats: {
           inputTokens: after.usedInputTokens - before.usedInputTokens,
+          inputLabel: 'Evaluated input',
+          contextTokens: engine.sequence.nextTokenIndex,
+          contextSize: engine.sequence.contextSize,
+          contextEstimated: false,
+          cachedTokens: null,
+          elapsedSeconds: (Date.now() - t0) / 1000,
+          firstTokenSeconds: tFirst ? (tFirst - t0) / 1000 : null,
           outputTokens,
           tps: genSeconds > 0 ? outputTokens / genSeconds : null,
         },
@@ -124,6 +142,20 @@ function handleTranslate({ id, modelPath, systemPrompt, text, reasoning }) {
 process.parentPort.on('message', (event) => {
   const msg = event.data;
   if (msg.type === 'load') loadEngine(msg.modelPath);
+  else if (msg.type === 'count') {
+    const run = async () => {
+      try {
+        const engine = await loadEngine(msg.modelPath);
+        const session = await getSession(engine, msg.reasoning);
+        const chatHistory = [{ type: 'system', text: msg.systemPrompt }, ...msg.messages.map(m =>
+          m.role === 'user' ? { type: 'user', text: m.content } : { type: 'model', response: [m.content] }
+        ), { type: 'model', response: [] }];
+        const { contextText } = session.chatWrapper.generateContextState({ chatHistory });
+        post({ type: 'counted', id: msg.id, tokens: contextText.tokenize(engine.model.tokenizer).length });
+      } catch (err) { post({ type: 'error', id: msg.id, error: err.message }); }
+    };
+    queue = queue.then(run, run);
+  }
   else if (msg.type === 'translate') handleTranslate(msg);
   else if (msg.type === 'abort') aborts.get(msg.id)?.abort();
 });

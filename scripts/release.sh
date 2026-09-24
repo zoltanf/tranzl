@@ -12,6 +12,12 @@ cd "$(dirname "$0")/.."
 REPO="zoltanf/tranzl"
 TAP_REPO="zoltanf/homebrew-tranzl"
 
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "Commit all changes before releasing." >&2
+  exit 1
+fi
+COMMIT=$(git rev-parse HEAD)
+
 VERSION=$(node -p "require('./package.json').version")
 TAG="v$VERSION"
 ZIP="dist/Tranzl-$VERSION-arm64.zip"
@@ -34,6 +40,7 @@ echo "==> Creating GitHub release $TAG"
 git push origin HEAD
 gh release create "$TAG" "$ZIP" \
   --repo "$REPO" \
+  --target "$COMMIT" \
   --title "Tranzl $VERSION" \
   --notes "Tranzl $VERSION for Apple Silicon Macs.
 
@@ -44,6 +51,7 @@ brew install --cask zoltanf/tranzl/tranzl
 
 echo "==> Updating Homebrew tap ($TAP_REPO)"
 TAP_DIR=$(mktemp -d)
+trap 'rm -rf "$TAP_DIR"' EXIT
 gh repo clone "$TAP_REPO" "$TAP_DIR" -- --depth 1
 mkdir -p "$TAP_DIR/Casks"
 cat > "$TAP_DIR/Casks/tranzl.rb" <<EOF

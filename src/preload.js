@@ -1,6 +1,14 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('tranzl', {
+  clipboardImage: () => ipcRenderer.invoke('clipboard-image'),
+  chatModelInfo: (model) => ipcRenderer.invoke('chat-model-info', model),
+  chatSend: (options) => ipcRenderer.invoke('chat-send', options),
+  chatStop: () => ipcRenderer.invoke('chat-stop'),
+  chatLoad: () => ipcRenderer.invoke('chat-load'),
+  chatSave: (data) => ipcRenderer.invoke('chat-save', data),
+  chatAttach: () => ipcRenderer.invoke('chat-attach'),
+  onChatEvent: (callback) => ipcRenderer.on('chat-event', (_event, data) => callback(data)),
   translate: (options) => ipcRenderer.invoke('translate', options),
   onTranslationEvent: (callback) =>
     ipcRenderer.on('translation-event', (_event, data) => callback(data)),
