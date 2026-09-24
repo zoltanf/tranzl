@@ -38,13 +38,20 @@ app.whenReady().then(async () => {
       const filename = path.join(root, `data.${type}`); execFileSync('/usr/bin/textutil', ['-convert', type, '-output', filename, text]);
       assert.match((await read(filename)).content, /useful test document/);
     }
+    for (const codec of ['aac', 'alac']) {
+      const source = require('./audio-fixture.cjs').createM4a(root, codec);
+      const audio = await read(source);
+      assert.equal(audio.name, `${codec}.m4a`);
+      assert.equal(audio.format, 'wav'); assert.equal(audio.mime, 'audio/wav');
+      assert.equal(Buffer.from(audio.data, 'base64').toString('ascii', 0, 4), 'RIFF');
+    }
     // Chromium printToPDF generates a real PDF for the worker's PDF.js path.
     const { BrowserWindow } = require('electron');
     const window = new BrowserWindow({ show: false });
     await window.loadURL('data:text/html,<h1>Reader verification 1234</h1>');
     fs.writeFileSync(path.join(root, 'test.pdf'), await window.webContents.printToPDF({})); window.destroy();
     assert.match((await read(path.join(root, 'test.pdf'))).content, /verification 1234/);
-    console.log('PASS: Electron worker image, PDF, DOC, DOCX, XLS and XLSX readers.');
+    console.log('PASS: Electron worker image, PDF, DOC, DOCX, XLS, XLSX and M4A readers.');
     fs.rmSync(root, { recursive: true, force: true }); app.exit(0);
   } catch (err) { console.error(err); fs.rmSync(root, { recursive: true, force: true }); app.exit(1); }
 });

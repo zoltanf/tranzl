@@ -1,6 +1,6 @@
 {
   "name": "tranzl",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Private, on-device translation, text editing and chat",
   "main": "src/main.js",
   "scripts": {

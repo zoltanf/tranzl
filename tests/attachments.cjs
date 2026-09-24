@@ -81,3 +81,46 @@ for (const rows of [10000, 10001, 10002]) test(`spreadsheet row limit at ${rows}
   if (rows > 10000) await assert.rejects(check, /exceeds 10,000 rows/);
   else await check;
 });
+
+for (const codec of ['aac', 'alac']) test(`M4A ${codec} converts locally to mono WAV and preserves the original`, { skip: process.platform !== 'darwin' }, async () => {
+  const { createM4a } = require('./audio-fixture.cjs');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-m4a-test-'));
+  const before = (await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort();
+  try {
+    const source = createM4a(dir, codec), original = await fs.readFile(source);
+    const file = await readAttachment(source);
+    assert.equal(file.name, `${codec}.m4a`); assert.equal(file.kind, 'audio');
+    assert.equal(file.format, 'wav'); assert.equal(file.mime, 'audio/wav');
+    const wav = Buffer.from(file.data, 'base64');
+    assert.equal(wav.toString('ascii', 0, 4), 'RIFF');
+    const fmt = wav.indexOf('fmt ');
+    assert.equal(wav.readUInt16LE(fmt + 8), 1);
+    assert.equal(wav.readUInt16LE(fmt + 10), 1);
+    assert.equal(wav.readUInt32LE(fmt + 12), 16000);
+    assert.equal(wav.readUInt16LE(fmt + 22), 16);
+    const data = wav.indexOf('data') + 8;
+    let peak = 0;
+    for (let i = data; i + 1 < wav.length; i += 2) peak = Math.max(peak, Math.abs(wav.readInt16LE(i)));
+    assert.ok(peak > 1000, 'the right audio channel must survive mono conversion');
+    validateMessages([{ role: 'user', content: 'Transcribe', media: [file] }]);
+    assert.equal(openAIMessages([{ role: 'user', content: 'Transcribe', media: [file] }])[0].content.at(-1).input_audio.format, 'wav');
+    assert.deepEqual(await fs.readFile(source), original);
+    assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});
+test('invalid M4A fails clearly and removes conversion files', { skip: process.platform !== 'darwin' }, async () => {
+  const before = (await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort();
+  await assert.rejects(fixture('broken.m4a', 'not audio', () => {}), /could not decode M4A/);
+  assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
+});
+test('compressed M4A cannot bypass the decoded audio size limit', { skip: process.platform !== 'darwin' }, async () => {
+  const { createM4a } = require('./audio-fixture.cjs');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-m4a-limit-'));
+  const before = (await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort();
+  try {
+    const source = createM4a(dir, 'aac', 660);
+    assert.ok((await fs.stat(source)).size < 20 * 1024 * 1024);
+    await assert.rejects(readAttachment(source), /converted audio exceeds 20 MB/);
+    assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});

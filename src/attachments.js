@@ -1,11 +1,33 @@
 // Document parsing runs in a disposable worker, not on Electron's UI thread.
 const fs = require('fs/promises');
 const path = require('path');
+const os = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_TEXT = 120000;
-const EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'pdf', 'doc', 'docx', 'csv', 'tsv', 'xls', 'xlsx', 'wav', 'mp3', 'flac', 'txt', 'md', 'json', 'js', 'ts', 'jsx', 'tsx', 'py', 'html', 'css', 'xml', 'yaml', 'yml', 'log', 'sql', 'sh', 'rs', 'swift', 'c', 'h', 'cpp', 'java', 'go', 'toml', 'ini'];
+const EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'pdf', 'doc', 'docx', 'csv', 'tsv', 'xls', 'xlsx', 'wav', 'mp3', 'flac', 'm4a', 'txt', 'md', 'json', 'js', 'ts', 'jsx', 'tsx', 'py', 'html', 'css', 'xml', 'yaml', 'yml', 'log', 'sql', 'sh', 'rs', 'swift', 'c', 'h', 'cpp', 'java', 'go', 'toml', 'ini'];
+async function readM4a(filename) {
+  if (process.platform !== 'darwin') throw new Error('M4A conversion requires macOS; attach WAV, MP3 or FLAC instead');
+  // Core Audio handles AAC and Apple Lossless without downloading a converter.
+  // Keep decoded audio in a private directory and remove it before returning.
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-audio-'));
+  try {
+    const output = path.join(dir, 'audio.wav');
+    try {
+      await promisify(execFile)('/usr/bin/afconvert', ['-f', 'WAVE', '-d', 'LEI16@16000', '-c', '1', '--mix', path.resolve(filename), output], { timeout: 20000, maxBuffer: 65536 });
+    } catch (error) {
+      throw new Error(error.killed ? 'M4A conversion timed out; attach a shorter clip' : 'could not decode M4A audio; the file may be damaged, protected or use an unsupported codec');
+    }
+    if ((await fs.stat(output)).size > MAX_BYTES) throw new Error('converted audio exceeds 20 MB; attach a shorter clip');
+    const bytes = await fs.readFile(output);
+    if (bytes.length > MAX_BYTES) throw new Error('converted audio exceeds 20 MB; attach a shorter clip');
+    if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE') throw new Error('M4A conversion did not produce valid audio');
+    return bytes;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
 function boundedText(content) {
   if (content.length > MAX_TEXT) throw new Error('extracted text exceeds 120,000 characters; attach a smaller section');
   if (!content.trim()) throw new Error('no readable text found');
@@ -20,6 +42,10 @@ async function readAttachment(filename) {
   const bytes = await fs.readFile(filename);
   if (bytes.length > MAX_BYTES) throw new Error('maximum file size is 20 MB');
   const file = { name: path.basename(filename), size: bytes.length, kind: 'document', content: '' };
+  if (extension === 'm4a') {
+    const audio = await readM4a(filename);
+    return { ...file, kind: 'audio', format: 'wav', mime: 'audio/wav', data: audio.toString('base64'), summary: 'M4A audio · converted locally' };
+  }
   if (['png', 'jpg', 'jpeg', 'webp'].includes(extension)) {
     const { loadImage, createCanvas } = require('@napi-rs/canvas');
     const image = await loadImage(bytes);

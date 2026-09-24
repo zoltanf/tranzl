@@ -31,5 +31,9 @@ async function ask(messages, reasoning = false) {
   const audio = await readAttachment(path.join(temp, 'voice.wav'));
   const heard = await ask([{ role: 'user', content: 'Transcribe the words spoken in this audio. Output only the transcript.', media: [audio] }], true);
   assert.match(heard.translation, /blue bicycle/i); assert.match(heard.translation, /garden gate/i);
-  console.log('PASS: real embedded Gemma image recognition and audio transcription.');
+  execFileSync('/usr/bin/afconvert', ['-f', 'm4af', '-d', 'aac', path.join(temp, 'voice.aiff'), path.join(temp, 'voice.m4a')]);
+  const m4a = await readAttachment(path.join(temp, 'voice.m4a'));
+  const converted = await ask([{ role: 'user', content: 'Transcribe the words spoken in this audio. Output only the transcript.', media: [m4a] }], true);
+  assert.match(converted.translation, /blue bicycle/i); assert.match(converted.translation, /garden gate/i);
+  console.log('PASS: real embedded Gemma image recognition, WAV and M4A transcription.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => { runtime.stop(); fs.rmSync(temp, { recursive: true, force: true }); });
