@@ -1,3 +1,5 @@
+const appRoot = process.env.TRANZL_APP_ROOT || require('node:path').resolve(__dirname, '..');
+const appRequire = require('node:module').createRequire(require('node:path').join(appRoot, 'package.json'));
 // Run with: node_modules/.bin/electron tests/chat-ui.cjs
 const { app, BrowserWindow, ipcMain, nativeTheme } = require('electron');
 const path = require('node:path');
@@ -9,7 +11,7 @@ app.setPath('userData', temp);
 let saved = { sessions: [] }, lastRequest, lastTranslation, translationSender, holdResponse = false, releaseResponse, fileText = 'The launch is Friday.', cappedReply = false;
 const reply = '# Local answers\n\nHere is **bold** and *italic* text.\n\n| Item | Result |\n| --- | --- |\n| Privacy | Local |\n\n```js\nconsole.log("hello");\n```\n\n> A quoted passage\n\n- First item\n- Second item\n\n<script>window.injected = true</script><img src=x onerror="window.injected=true">[unsafe](javascript:alert(1))';
 const stats = { inputTokens: 1024, outputTokens: 256, cachedTokens: 768, tps: 42.5, contextTokens: 1280, contextSize: 8192, contextEstimated: true, elapsedSeconds: 6.2 };
-const { createCanvas } = require('@napi-rs/canvas');
+const { createCanvas } = appRequire('@napi-rs/canvas');
 const imageData = createCanvas(40, 30).toBuffer('image/png').toString('base64');
 const audioBytes = Buffer.alloc(364); audioBytes.write('RIFF'); audioBytes.writeUInt32LE(356, 4); audioBytes.write('WAVEfmt ', 8); audioBytes.writeUInt32LE(16, 16); audioBytes.writeUInt16LE(1, 20); audioBytes.writeUInt16LE(1, 22); audioBytes.writeUInt32LE(16000, 24); audioBytes.writeUInt32LE(32000, 28); audioBytes.writeUInt16LE(2, 32); audioBytes.writeUInt16LE(16, 34); audioBytes.write('data', 36); audioBytes.writeUInt32LE(320, 40);
 const handlers = {
@@ -42,7 +44,7 @@ const handlers = {
 };
 for (const [key, value] of Object.entries(handlers)) ipcMain.handle(key, value);
 app.whenReady().then(async () => {
-  const win = new BrowserWindow({ width: 1100, height: 800, show: false, webPreferences: { preload: path.resolve(__dirname, '../src/preload.js'), contextIsolation: true, nodeIntegration: false } });
+  const win = new BrowserWindow({ width: 1100, height: 800, show: false, webPreferences: { preload: path.resolve(appRoot, 'src/preload.js'), contextIsolation: true, nodeIntegration: false } });
   const errors = [];
   win.webContents.on('console-message', (_e, level, message, line, sourceId) => { if (level >= 3) errors.push(`${message} (${sourceId}:${line})`); });
   const run = code => win.webContents.executeJavaScript(code);
@@ -51,7 +53,7 @@ app.whenReady().then(async () => {
     throw new Error(`Timed out: ${code}`);
   }
   try {
-    await win.loadFile(path.resolve(__dirname, '../src/renderer/index.html'));
+    await win.loadFile(path.resolve(appRoot, 'src/renderer/index.html'));
     await waitFor(`!document.getElementById('chat-input').disabled`);
     assert.equal(await run(`document.querySelector('#tab-chat #chat-new') !== null && document.querySelector('#tab-chat #chat-clear') !== null`), true);
     await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-attach').click()`);

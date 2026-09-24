@@ -1,19 +1,21 @@
+const appRoot = process.env.TRANZL_APP_ROOT || require('node:path').resolve(__dirname, '..');
+const appRequire = require('node:module').createRequire(require('node:path').join(appRoot, 'package.json'));
 // Exercises the real native readers inside Electron worker threads.
 const { app, nativeImage } = require('electron');
-const { readClipboardImage } = require('../src/clipboardImage');
+const { readClipboardImage } = appRequire('./src/clipboardImage');
 const { Worker } = require('worker_threads');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const assert = require('assert/strict');
-const XLSX = require('xlsx');
-const { createCanvas } = require('@napi-rs/canvas');
+const XLSX = appRequire('xlsx');
+const { createCanvas } = appRequire('@napi-rs/canvas');
 const { execFileSync } = require('child_process');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-electron-readers-'));
 app.setPath('userData', path.join(root, 'app'));
 async function read(filename) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(path.resolve(__dirname, '../src/attachmentWorker.js'), { workerData: filename });
+    const worker = new Worker(path.resolve(appRoot, 'src/attachmentWorker.js'), { workerData: filename });
     worker.once('error', reject);
     worker.once('message', result => { worker.terminate(); result.error ? reject(new Error(result.error)) : resolve(result.file); });
   });

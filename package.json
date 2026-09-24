@@ -1,11 +1,11 @@
 {
   "name": "tranzl",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Private, on-device translation, text editing and chat",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app",
+    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --no-asar --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app",
     "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/",
     "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs",
     "test:electron": "electron tests/chat-ui.cjs && electron tests/attachments-electron.cjs"
@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@electron/packager": "^20.0.4",
-    "electron": "^33.4.11"
+    "electron": "^44.4.5"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.100",
@@ -30,7 +30,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "allowScripts": {
-    "electron@33.4.11": true,
-    "node-llama-cpp@3.19.1": true
+    "node-llama-cpp@3.19.1": true,
+    "electron@44.4.5": true
   }
 }

@@ -14,7 +14,7 @@ The main engineering effort is native dependency distribution and runtime valida
 
 The repository was inspected while Chat development was in progress. Reinspect the current tree before implementation; filenames and behavior below are a baseline, not instructions to overwrite subsequent work.
 
-- `package.json`: Electron 33.x, Electron Packager 20.x, `node-llama-cpp` dependency range `^3`; installed inference library observed as 3.19.1. Packaging currently targets macOS ARM64 with ASAR disabled.
+- `package.json`: Electron 44.x, Electron Packager 20.x, `node-llama-cpp` dependency range `^3`; installed inference library observed as 3.19.1. Packaging currently targets macOS ARM64 with ASAR disabled.
 - `scripts/release.sh`: Mac build, `ditto` archive, GitHub release, and Homebrew tap update in one script.
 - `src/main.js`: OS-derived application data path, local HTTP inference backends, theme/window integration, and encrypted translation history.
 - `src/backends/local.js`: model downloader and Electron utility-process proxy.

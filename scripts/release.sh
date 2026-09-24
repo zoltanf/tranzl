@@ -27,8 +27,16 @@ if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
   exit 1
 fi
 
+# Electron is a devDependency but is shipped inside the app. Audit the full
+# graph so production-only audits cannot miss runtime or packaging advisories.
+echo "==> Auditing dependencies and running regression checks"
+npm audit
+npm test
+npm run test:electron
+
 echo "==> Building Tranzl $VERSION"
 npm run pack
+TRANZL_APP_ROOT="$PWD/dist/Tranzl-darwin-arm64/Tranzl.app/Contents/Resources/app" npm run test:electron
 
 echo "==> Zipping"
 rm -f "$ZIP"
