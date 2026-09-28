@@ -1,7 +1,18 @@
 // Only called in response to an explicit paste action. Clipboard contents are
 // normalized in memory and are never written to temporary plaintext files.
-function readClipboardImage(clipboard) {
-  let image = clipboard.readImage();
+async function readClipboardImage(clipboard) {
+  const { nativeImage } = require('electron');
+  const items = await clipboard.read();
+  // Clipboard managers can restore PNG data under a native macOS format
+  // without publishing the standard image/png MIME type.
+  const pngTypes = ['image/png', 'electron application/osclipboard;format="public.png"', 'electron application/osclipboard;format="Apple PNG pasteboard type"'];
+  const isImage = type => type.startsWith('image/') || pngTypes.includes(type);
+  const item = items.find(item => item.types.some(isImage));
+  if (!item) return { file: null };
+  const type = pngTypes.find(type => item.types.includes(type)) || item.types.find(isImage);
+  const blob = await item.getType(type);
+  if (blob.size > 20 * 1024 * 1024) return { error: 'Clipboard image exceeds 20 MB.' };
+  let image = nativeImage.createFromBuffer(Buffer.from(await blob.arrayBuffer()));
   if (image.isEmpty()) return { file: null };
   const original = image.getSize();
   if (original.width * original.height > 40000000) return { error: 'Clipboard image exceeds 40 megapixels.' };

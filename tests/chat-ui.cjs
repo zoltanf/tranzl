@@ -113,24 +113,29 @@ app.whenReady().then(async () => {
     assert.equal(lastRequest.messages[0].media[0].name, 'Pasted image.png');
     // The same paste in Translate triggers OCR/translation with image-only input.
     await run(`document.querySelector('[data-tab="tab-translate"]').click(); var pasteTestData = new DataTransfer(); pasteTestData.items.add(new File(['image'], 'paste.png', { type: 'image/png' })); document.getElementById('source').dispatchEvent(new ClipboardEvent('paste', { clipboardData: pasteTestData, bubbles: true, cancelable: true }));`);
-    await waitFor(`document.getElementById('output').value === 'Translated image text'`);
+    await waitFor(`document.getElementById('output').textContent.trim() === 'Translated image text'`);
     assert.equal(lastTranslation.text, ''); assert.equal(lastTranslation.images.length, 1);
     await run(`document.querySelector('#translation-images img').click()`);
     assert.equal(await run(`document.querySelector('.attachment-preview-dialog').open`), true);
     await run(`document.querySelector('.attachment-preview-dialog').close()`);
 
     await run(`document.getElementById('target-language').value='German'; document.getElementById('target-language').dispatchEvent(new Event('change'))`);
-    await waitFor(`document.getElementById('output').value === 'Translated image text'`);
+    await waitFor(`document.getElementById('output').textContent.trim() === 'Translated image text'`);
     assert.equal(lastTranslation.targetLanguage, 'German'); assert.equal(lastTranslation.images.length, 1);
     const oldId = lastTranslation.requestId;
     await run(`document.getElementById('clear-btn').click()`);
     translationSender.send('translation-event', { requestId: oldId, type: 'chunk', delta: 'STALE' });
     await new Promise(r => setTimeout(r, 30));
-    assert.equal(await run(`document.getElementById('output').value`), '');
+    assert.equal(await run(`document.getElementById('output').textContent.trim()`), '');
     assert.equal(await run(`document.querySelectorAll('#translation-images img').length`), 0);
     await run(`var pasteTestData = new DataTransfer(); pasteTestData.setData('text/plain', 'Normal text'); document.getElementById('source').dispatchEvent(new ClipboardEvent('paste', { clipboardData: pasteTestData, bubbles: true })); document.getElementById('source').value='Normal text'; document.getElementById('source').dispatchEvent(new Event('input'));`);
-    await waitFor(`document.getElementById('output').value === 'Translated image text'`);
+    await waitFor(`document.getElementById('output').textContent.trim() === 'Translated image text'`);
     assert.equal(lastTranslation.text, 'Normal text'); assert.equal(lastTranslation.images.length, 0);
+    translationSender.send('translation-event', { requestId: lastTranslation.requestId, type: 'done', translation: reply, stats });
+    await waitFor(`!!document.querySelector('#output table')`);
+    assert.equal(await run(`!!document.querySelector('#output strong') && !!document.querySelector('#output pre code')`), true);
+    assert.equal(await run(`!!document.querySelector('#output script, #output img, #output a[href^="javascript:"]') || !!window.injected`), false);
+    assert.equal(await run(`outputText`), reply);
     // A long PDF's character estimate must not masquerade as occupied context.
     fileText = 'PDF extracted text '.repeat(2500); holdResponse = true;
     await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-new').click(); document.getElementById('chat-attach').click()`);

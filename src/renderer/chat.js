@@ -48,19 +48,7 @@
       row.append(open, remove); el('sessions').append(row);
     }
   }
-  function markdown(text) {
-    const fragment = DOMPurify.sanitize(marked.parse(text || '', { gfm: true, breaks: true }), {
-      RETURN_DOM_FRAGMENT: true, FORBID_TAGS: ['img', 'style', 'form', 'video', 'audio', 'iframe'], FORBID_ATTR: ['style'],
-    });
-    for (const input of fragment.querySelectorAll('input')) {
-      if (input.type !== 'checkbox') input.remove(); else input.disabled = true;
-    }
-    for (const link of fragment.querySelectorAll('a')) {
-      if (!/^https:\/\//i.test(link.getAttribute('href') || '')) link.removeAttribute('href');
-      else { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
-    }
-    return fragment;
-  }
+  const markdown = window.renderMarkdown;
   const number = value => Number.isFinite(value) ? Math.round(value).toLocaleString() : '—';
   // Blend two hex colors; the context ring fades from accent toward red as the window fills.
   const mixColor = (from, to, t) => { const a = [1, 3, 5].map(i => parseInt(from.slice(i, i + 2), 16)), b = [1, 3, 5].map(i => parseInt(to.slice(i, i + 2), 16)); return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(', ')})`; };
@@ -387,7 +375,7 @@
   el('send').onclick = send;
   el('stop').onclick = () => { window.tranzl.chatStop(); notice('Stopping…'); };
   el('input').addEventListener('paste', async event => {
-    if (![...(event.clipboardData?.items || [])].some(item => item.type.startsWith('image/'))) return;
+    if (![...(event.clipboardData?.items || [])].some(item => item.type.startsWith('image/')) && event.clipboardData?.getData('text/plain')) return;
     event.preventDefault();
     if (!ready || attaching) return;
     const session = current();

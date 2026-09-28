@@ -1,7 +1,7 @@
 const appRoot = process.env.TRANZL_APP_ROOT || require('node:path').resolve(__dirname, '..');
 const appRequire = require('node:module').createRequire(require('node:path').join(appRoot, 'package.json'));
 // Exercises the real native readers inside Electron worker threads.
-const { app, nativeImage } = require('electron');
+const { app, clipboard, ClipboardItem } = require('electron');
 const { readClipboardImage } = appRequire('./src/clipboardImage');
 const { Worker } = require('worker_threads');
 const fs = require('fs');
@@ -25,9 +25,17 @@ app.whenReady().then(async () => {
   try {
     const canvas = createCanvas(30, 20); fs.writeFileSync(path.join(root, 'image.png'), canvas.toBuffer('image/png'));
     assert.equal((await read(path.join(root, 'image.png'))).kind, 'image');
-    const pasted = readClipboardImage({ readImage: () => nativeImage.createFromBuffer(canvas.toBuffer('image/png')) });
+    assert.equal(typeof clipboard.read, 'function');
+    const imageItem = new ClipboardItem({ 'image/png': new Blob([canvas.toBuffer('image/png')], { type: 'image/png' }) });
+    const pasted = await readClipboardImage({ read: async () => [imageItem] });
     assert.equal(pasted.file.kind, 'image'); assert.equal(pasted.file.width, 30); assert.equal(pasted.file.height, 20);
-    assert.equal(readClipboardImage({ readImage: () => nativeImage.createEmpty() }).file, null);
+    const applePNG = 'electron application/osclipboard;format="Apple PNG pasteboard type"';
+    const nativeItem = new ClipboardItem({ [applePNG]: new Blob([canvas.toBuffer('image/png')]) });
+    const nativePasted = await readClipboardImage({ read: async () => [nativeItem] });
+    assert.equal(nativePasted.file.width, 30); assert.equal(nativePasted.file.height, 20);
+    assert.equal((await readClipboardImage({ read: async () => [] })).file, null);
+    assert.equal((await readClipboardImage({ read: async () => [new ClipboardItem({ 'text/plain': 'text only' })] })).file, null);
+    await assert.rejects(readClipboardImage({ read: async () => { throw new Error('Clipboard unavailable'); } }), /Clipboard unavailable/);
     const book = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([['Answer'], [42]]), 'Test');
     for (const type of ['xlsx', 'xls']) {
       const filename = path.join(root, `data.${type}`); XLSX.writeFile(book, filename);

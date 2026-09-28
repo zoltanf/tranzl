@@ -1,5 +1,10 @@
 const sourceEl = document.getElementById('source');
 const outputEl = document.getElementById('output');
+let outputText = '';
+function setOutput(text) {
+  outputText = text;
+  outputEl.replaceChildren(window.renderMarkdown(text));
+}
 const langEl = document.getElementById('target-language');
 const modelEl = document.getElementById('model-select');
 const effortEl = document.getElementById('effort');
@@ -166,7 +171,7 @@ window.tranzl.onTranslationEvent((event) => {
       thinkingAutoCollapsed = true;
       setThinkingCollapsed(true);
     }
-    outputEl.value += event.delta;
+    setOutput(outputText + event.delta);
     outputEl.scrollTop = outputEl.scrollHeight;
   } else if (event.type === 'thinking') {
     thinkingBoxEl.classList.remove('hidden');
@@ -177,7 +182,7 @@ window.tranzl.onTranslationEvent((event) => {
     thinkingContentEl.textContent += event.delta;
     thinkingContentEl.scrollTop = thinkingContentEl.scrollHeight;
   } else if (event.type === 'done') {
-    outputEl.value = event.translation;
+    setOutput(event.translation);
     translating = false;
     setStatus(event.model ? `Ready · ${event.model}` : 'Ready', 'ok');
     statusStatsEl.textContent = formatStats(event.stats);
@@ -205,7 +210,7 @@ async function translate() {
   const text = sourceEl.value;
   if (!text.trim() && !translationImage) {
     stopTranslation();
-    outputEl.value = '';
+    setOutput('');
     return;
   }
 
@@ -217,7 +222,7 @@ async function translate() {
 
   const seq = ++requestSeq;
   lastRequestText = text;
-  outputEl.value = '';
+  setOutput('');
   statusStatsEl.textContent = '';
   thinkingContentEl.textContent = '';
   thinkingBoxEl.classList.add('hidden');
@@ -242,7 +247,7 @@ async function translate() {
     });
     if (seq !== requestSeq) return;
     if (result.ok && typeof result.translation === 'string') {
-      outputEl.value = result.translation; translating = false;
+      setOutput(result.translation); translating = false;
       setStatus(result.model ? `Ready · ${result.model}` : 'Ready', 'ok');
       statusStatsEl.textContent = formatStats(result.stats);
     } else if (!result.ok) {
@@ -561,7 +566,7 @@ undoUnwrapBtn.addEventListener('click', () => {
 let pendingPaste = false;
 
 sourceEl.addEventListener('paste', event => {
-  if ([...(event.clipboardData?.items || [])].some(item => item.type.startsWith('image/'))) {
+  if ([...(event.clipboardData?.items || [])].some(item => item.type.startsWith('image/')) || !event.clipboardData?.getData('text/plain')) {
     event.preventDefault(); pendingPaste = false;
     pasteTranslationImage().catch(error => setStatus(error.message, 'error'));
     return;
@@ -701,14 +706,14 @@ pasteBtn.addEventListener('click', async () => {
 clearBtn.addEventListener('click', () => {
   imagePasteSeq++; translationImage = null; renderTranslationImage(); stopTranslation();
   sourceEl.value = '';
-  outputEl.value = '';
+  setOutput('');
   hideUnwrapUndo();
   sourceEl.focus();
 });
 
 copyBtn.addEventListener('click', async () => {
-  if (!outputEl.value) return;
-  await navigator.clipboard.writeText(outputEl.value);
+  if (!outputText) return;
+  await navigator.clipboard.writeText(outputText);
   copyBtn.textContent = 'Copied!';
   setTimeout(() => (copyBtn.textContent = 'Copy'), 1200);
 });

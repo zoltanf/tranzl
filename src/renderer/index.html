@@ -153,7 +153,7 @@
         <button id="thinking-toggle" class="thinking-toggle">Thinking ▾</button>
         <div id="thinking-content" class="thinking-content"></div>
       </div>
-      <textarea id="output" readonly placeholder="Result appears here…" spellcheck="false"></textarea>
+      <div id="output" class="translation-output chat-markdown" role="region" aria-label="Translation result" tabindex="0"></div>
     </section>
   </main>
 
@@ -297,9 +297,10 @@
 
   <script src="unwrap.js"></script>
   <script src="attachmentPreview.js"></script>
-  <script src="renderer.js"></script>
   <script src="../../node_modules/marked/lib/marked.umd.js"></script>
   <script src="../../node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="markdown.js"></script>
+  <script src="renderer.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>

@@ -105,7 +105,18 @@ test('translation accepts clipboard images with empty text and preserves OCR/tar
   const result = await h.handlers.get('translate')(h.event, { text: '', targetLanguage: 'English', model: 'vision', images: [{ kind: 'image', mime: 'image/png', data: 'aGVsbG8=' }] });
   assert.equal(result.translation, 'Good morning');
   assert.match(body.messages[0].content, /into English/); assert.match(body.messages[0].content, /Read all legible text/);
+  assert.match(body.messages[1].content[0].text, /Translate all legible text in the attached images.*into English/);
   assert.equal(body.messages[1].content[1].type, 'image_url');
+});
+test('image editing preserves no-translate mode and accompanying source text', async () => {
+  let body;
+  const h = harness('lmstudio', async (_url, options) => { body = JSON.parse(options.body); return new Response('data: ' + JSON.stringify({ choices: [{ delta: { content: 'Edited' } }] })); });
+  await h.handlers.get('translate')(h.event, { text: 'Additional source', targetLanguage: 'English', style: 'custom', customPrompt: 'Fix spelling', noTranslate: true, model: 'vision', images: [{ kind: 'image', mime: 'image/png', data: 'aGVsbG8=' }] });
+  const prompt = body.messages[1].content[0].text;
+  assert.match(prompt, /ORIGINAL language/);
+  assert.match(prompt, /Fix spelling/);
+  assert.match(prompt, /Accompanying source text:\nAdditional source/);
+  assert.doesNotMatch(prompt, /into English/);
 });
 test('translation rejects audio attachments', async () => {
   const h = harness('local');
