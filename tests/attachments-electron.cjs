@@ -63,6 +63,7 @@ app.whenReady().then(async () => {
     assert.ok(monoPeak(await decodeToWav(aac, { maxBytes: limit })) > 1000, 'Chromium decodes AAC without Core Audio');
     assert.equal(await decodeToWav(Buffer.from('not audio'), { maxBytes: limit }), null);
     await assert.rejects(decodeToWav(aac, { maxBytes: 1000 }), /converted audio exceeds 20 MB/);
+    await assert.rejects(decodeToWav(aac, { maxBytes: limit, timeoutMs: 1 }), /timed out/);
     assert.equal(BrowserWindow.getAllWindows().length, windows, 'decoder windows are destroyed');
     // Chromium printToPDF generates a real PDF for the worker's PDF.js path.
     const window = new BrowserWindow({ show: false });

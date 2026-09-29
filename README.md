@@ -87,7 +87,7 @@ Real-model checks use an isolated temporary profile and explicitly selected asse
 npm run evaluate:runtime -- --backend=embedded --model=/absolute/path/model.gguf --binary=/absolute/path/llama-server --projector=/absolute/path/projector.gguf --media --extended --offline --output=/absolute/path/report.json
 ```
 
-Add `--audio=/absolute/path/synthetic.wav` for transcription. Use `--download-runtime` instead of `--offline` to test fresh runtime acquisition. `npm run pack:evaluation` builds a separate evaluation app; it does not install or publish Tranzl. See [runtime evidence](docs/runtime-evaluation.md) and the [multiplatform implementation plan](docs/multiplatform-plan.md). Windows and Linux (x64 and ARM64) are planned; this branch currently validates macOS ARM64 only.
+Add `--audio=/absolute/path/synthetic.wav` (a synthetic speech clip you generate locally, e.g. with `say` on macOS or `espeak-ng` on Linux) for transcription. Use `--download-runtime` instead of `--offline` to test fresh runtime acquisition. `npm run pack:evaluation` builds a separate evaluation app; it does not install or publish Tranzl. See [runtime evidence](docs/runtime-evaluation.md) and the [multiplatform implementation plan](docs/multiplatform-plan.md). Windows and Linux (x64 and ARM64) are planned; this branch currently validates macOS ARM64 only.
 
 The UI check uses a mocked model and temporary storage; it does not modify your saved chats.
 

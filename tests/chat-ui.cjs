@@ -98,11 +98,11 @@ app.whenReady().then(async () => {
     await waitFor(`document.querySelectorAll('.chat-message').length === 4`);
     assert.equal(await run(`document.getElementById('chat-stat-speed').textContent`), '42.5 tok/s');
     await new Promise(r => setTimeout(r, 100));
-    fs.writeFileSync('/tmp/tranzl-chat-ui.png', (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(os.tmpdir(), 'tranzl-chat-ui.png'), (await win.webContents.capturePage()).toPNG());
     win.setSize(720, 480); nativeTheme.themeSource = 'dark';
     await new Promise(r => setTimeout(r, 100));
     assert.equal(await run(`document.documentElement.scrollWidth <= innerWidth && document.getElementById('chat-input').getBoundingClientRect().bottom < innerHeight && document.getElementById('chat-messages').clientHeight > 0`), true);
-    fs.writeFileSync('/tmp/tranzl-chat-compact.png', (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(os.tmpdir(), 'tranzl-chat-compact.png'), (await win.webContents.capturePage()).toPNG());
     await run(`window.confirm = () => true; document.querySelector('.chat-session.selected .chat-session-delete').click()`);
     assert.equal(await run(`document.querySelectorAll('.chat-session').length`), 1);
     await run(`document.getElementById('chat-clear').click()`);
@@ -253,7 +253,7 @@ app.whenReady().then(async () => {
     assert.deepEqual(saves, []);
 
     assert.deepEqual(errors, []);
-    console.log('PASS: chat UI, attachments, Markdown sanitization, multi-turn context, drafts, reload, delete, clear and temporary storage. Screenshot: /tmp/tranzl-chat-ui.png');
+    console.log(`PASS: chat UI, attachments, Markdown sanitization, multi-turn context, drafts, reload, delete, clear and temporary storage. Screenshot: ${path.join(os.tmpdir(), 'tranzl-chat-ui.png')}`);
     app.exit(0);
   } catch (err) { console.error(err); console.error(errors); console.error(await run(`document.getElementById('chat-view').innerHTML`)); app.exit(1); }
 }).finally(() => {});
