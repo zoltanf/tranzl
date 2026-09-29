@@ -16,9 +16,12 @@ const PROJECTOR = { filename: 'gemma-4-E4B-mmproj-Q8_0.gguf', bytes: 559874816,
   url: `https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/${REVISION}/mmproj-gemma-4-E4B-it-Q8_0.gguf`,
   sha256: '197f49a93027f9843772bd24a6a9e0be2a32a788de5a3def330e9c585d86edd1' };
 // Only natively validated targets are listed; others fail clearly (see Stage D).
+// Immutable checksum-verified archives only, never user input. Windows 10+ ships
+// bsdtar as System32\tar.exe, which also reads zip.
+const tar = () => process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : '/usr/bin/tar';
 const EXTRACTORS = {
-  // Immutable checksum-verified archives only, never user input.
-  'tar.gz': (archive, dest, signal) => promisify(execFile)('/usr/bin/tar', ['-xzf', archive, '-C', dest], { signal }),
+  'tar.gz': (archive, dest, signal) => promisify(execFile)(tar(), ['-xzf', archive, '-C', dest], { signal, windowsHide: true }),
+  zip: (archive, dest, signal) => promisify(execFile)(tar(), ['-xf', archive, '-C', dest], { signal, windowsHide: true }),
 };
 function runtimeFor(target = `${process.platform}-${process.arch}`) {
   const runtime = manifest.targets[target];
@@ -41,8 +44,10 @@ async function prepare({ dir, modelPath, media, signal, onStatus = () => {} }) {
     try {
       const extract = EXTRACTORS[runtime.archive.format];
       if (!extract) throw new Error(`Unsupported runtime archive format: ${runtime.archive.format}`);
-      await extract(archive, staging, signal);
-      const staged = path.join(staging, runtime.archive.root), target = path.dirname(binary);
+      // Extract into a subfolder: some archives (Windows) have no top-level directory.
+      const extracted = path.join(staging, 'extracted'); await fs.mkdir(extracted);
+      await extract(archive, extracted, signal);
+      const staged = path.join(extracted, runtime.archive.root), target = path.dirname(binary);
       if (!await verifyRuntime(staged, runtime.files, signal)) throw new Error('Extracted runtime failed verification.');
       const backup = path.join(staging, 'previous'); let backedUp = false;
       try { await fs.rename(target, backup); backedUp = true; } catch (error) { if (error.code !== 'ENOENT') throw error; }

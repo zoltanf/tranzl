@@ -59,6 +59,171 @@
         "libmtmd.dylib": "1ac6716fd4ce63147a2c96f18ff6ff4950a70d45e7a1045bb53fdf0b749897e1",
         "llama-server": "41df13c126456f8e5fab2057c86a790067a85ea1dfd8fbc0071cc45fbba56262"
       }
+    },
+    "linux-x64": {
+      "os": "linux",
+      "arch": "x64",
+      "compute": [
+        "cpu"
+      ],
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11158/llama-b11158-bin-ubuntu-x64.tar.gz",
+      "bytes": 17003153,
+      "sha256": "0779aa0c44b6b4445205625c5ecb92808314fa31437f0b41eb3bbf3773c2be64",
+      "archive": {
+        "format": "tar.gz",
+        "root": "llama-b11158"
+      },
+      "executable": "llama-server",
+      "notices": [
+        "LICENSE"
+      ],
+      "files": {
+        "LICENSE": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+        "libggml-base.so": "1e886c2bdbd284c8876a9773d307ae1f96fb2ec4f03e38786ebd994afe507511",
+        "libggml-base.so.0": "1e886c2bdbd284c8876a9773d307ae1f96fb2ec4f03e38786ebd994afe507511",
+        "libggml-base.so.0.25.1": "1e886c2bdbd284c8876a9773d307ae1f96fb2ec4f03e38786ebd994afe507511",
+        "libggml-cpu-alderlake.so": "8c0a8861351221a1dbe5fd43df5fbdbb00aeff0face86aed47ddc166323c2228",
+        "libggml-cpu-cannonlake.so": "efc6d0d0cb92e5ff7c3a2b2a995068a810e72aab23174bd6d84484f92e145643",
+        "libggml-cpu-cascadelake.so": "0e12697fe79d6209486fb4ab6e38ee279b8b80481208a7e1f7b61e803af6ee8c",
+        "libggml-cpu-cooperlake.so": "5cb2ce6bda931e19742c0cbec44ed258ac57afe2801cc2324d752a19bf8d6707",
+        "libggml-cpu-haswell.so": "984064c44e5a92558e01ace8cf18cde33356d2d21bdb93166f0faf57885fe234",
+        "libggml-cpu-icelake.so": "6cefaed8ad0d4b7e2e661e850b16936e4265283cb7fda004b6c6923d87e9241f",
+        "libggml-cpu-ivybridge.so": "a90c3b1a96f150cba36e0abae4dd8d15384db29fee49106c0f4664619ec01fe3",
+        "libggml-cpu-piledriver.so": "bb4d2dfe4cb107b06d7841904bf87460c42854dbf9c56d9dc3eed861e7a7bb92",
+        "libggml-cpu-sandybridge.so": "ced91e5db35c922b2e081daa079c0057f3862ad285f92dd1cfd1f6847985701a",
+        "libggml-cpu-sapphirerapids.so": "b19ce9b822c569e514c8a99f6df2996f553eb295838c78bd544d791a124d3919",
+        "libggml-cpu-skylakex.so": "cf4a4bc0daf9ca620d1df6ee66a7d9132899f33e3ff797d6b6fb5b29911ccbc0",
+        "libggml-cpu-sse42.so": "4f4e9d6bf9a3f3a6c709fb5e48c684d1fa4c931db23ee0f2c0bbf14d78fff1f4",
+        "libggml-cpu-x64.so": "2cf499f61c4e9888c47e404f9359e53e9ca79cf1f33e5b5bd706ce4642051149",
+        "libggml-cpu-zen4.so": "e636cd0e2c623b7fb74ed32e76a6d6139ee1dba1f8c552dd2c497a242db96b52",
+        "libggml-rpc.so": "bd8dffadf26f130935742016b8f8711bb35e3187f16f44d75db5639daa2c6cfa",
+        "libggml.so": "569c53469aceca5dd357d2c3e1570014ed73e676abb08d44971be4cb784d855c",
+        "libggml.so.0": "569c53469aceca5dd357d2c3e1570014ed73e676abb08d44971be4cb784d855c",
+        "libggml.so.0.25.1": "569c53469aceca5dd357d2c3e1570014ed73e676abb08d44971be4cb784d855c",
+        "libllama-batched-bench-impl.so": "51708700c784ce0a58214aad58f5a259b519d94cb625c7e7c9e8435f9e94b460",
+        "libllama-bench-impl.so": "bec94a1255db087838211878fda2be5528ff5886d2088551f48446473bd413c0",
+        "libllama-cli-impl.so": "55c9a9db29646b8a88d87f276f10278b9c7ed835a9672d442e9ecafad1c0cdc1",
+        "libllama-common.so": "87b7572802d2efcf430ad752aeb1fe74b547800fd61efc32a51edc2498165923",
+        "libllama-common.so.0": "87b7572802d2efcf430ad752aeb1fe74b547800fd61efc32a51edc2498165923",
+        "libllama-common.so.0.5.0": "87b7572802d2efcf430ad752aeb1fe74b547800fd61efc32a51edc2498165923",
+        "libllama-completion-impl.so": "251871f192308edca2b2d7ec253832e27aca2aafc18c242a7f1c8418496efa0a",
+        "libllama-fit-params-impl.so": "64659e27caad6d884fa093d33b9aa631a4def6cbbff0aa85bf6218a153565cc2",
+        "libllama-perplexity-impl.so": "b37f8c9dd0f6b2e43df448e18d1afb81ca31e979d865f49e81f2c3014a0a9409",
+        "libllama-quantize-impl.so": "510e169cfd384703bd504c92be4871959530f593ad5f7dbd32e04fcec6eaf3d5",
+        "libllama-server-impl.so": "aadc954ea29b12495faff0bbd10c5c21db1c77f7f730b867cc494c417f49c971",
+        "libllama.so": "bcc97a6336e4368301413a2e0319257891e29f9d7d7a654435210e474905fa98",
+        "libllama.so.0": "bcc97a6336e4368301413a2e0319257891e29f9d7d7a654435210e474905fa98",
+        "libllama.so.0.5.0": "bcc97a6336e4368301413a2e0319257891e29f9d7d7a654435210e474905fa98",
+        "libmtmd.so": "de215ee78c4be01f50330e9678d408541be663fcb4be07874e1bcefe4ab0a353",
+        "libmtmd.so.0": "de215ee78c4be01f50330e9678d408541be663fcb4be07874e1bcefe4ab0a353",
+        "libmtmd.so.0.5.0": "de215ee78c4be01f50330e9678d408541be663fcb4be07874e1bcefe4ab0a353",
+        "llama-server": "d093d39bc54c37b48222012be71e2aff687b2285d39a5b6b746f60dc720dadd0"
+      }
+    },
+    "linux-arm64": {
+      "os": "linux",
+      "arch": "arm64",
+      "compute": [
+        "cpu"
+      ],
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11158/llama-b11158-bin-ubuntu-arm64.tar.gz",
+      "bytes": 13594758,
+      "sha256": "78b3a18ca88d38e61daf80f8bb19ad74eea77934391dd48cdf3ba05f4d1a09c0",
+      "archive": {
+        "format": "tar.gz",
+        "root": "llama-b11158"
+      },
+      "executable": "llama-server",
+      "notices": [
+        "LICENSE"
+      ],
+      "files": {
+        "LICENSE": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+        "libggml-base.so": "7aabb86c0a917cdcdcfcaa98f005342b9b8b1796e9a8e29517528c806fa786be",
+        "libggml-base.so.0": "7aabb86c0a917cdcdcfcaa98f005342b9b8b1796e9a8e29517528c806fa786be",
+        "libggml-base.so.0.25.1": "7aabb86c0a917cdcdcfcaa98f005342b9b8b1796e9a8e29517528c806fa786be",
+        "libggml-cpu-armv8.0_1.so": "859d54c9a3a09fc28846cc22d2a7c85e73e4f7295fc9f4915c3df7bb9c6b925f",
+        "libggml-cpu-armv8.2_1.so": "cbaf8a7a66a1ba92e990e4689c03a41f664f30387dc457ffb78bb378c01f8467",
+        "libggml-cpu-armv8.2_2.so": "69a56db8da30d092e70693bdbf8909f51a1e38f51be9d5c002aa42d22fd5ba40",
+        "libggml-cpu-armv8.2_3.so": "b2f5b99ef34480c6be3a0bd062c9a04b8ccbea1a7c1c7c5afea9f00d918473ff",
+        "libggml-cpu-armv8.6_1.so": "ed3ba4a14a2b4755e9dbfa2262305ca38ef27a842ffc41180b127cc914896fae",
+        "libggml-cpu-armv8.6_2.so": "a63199523ef6fecf1e54f064b70991fe3da6ef3ad23f3864c36b6749757b1fc1",
+        "libggml-cpu-armv9.2_1.so": "f27282e96e5887696fff23c7a2fe068320ade10fb6336f5a20d6858f0fe8df6f",
+        "libggml-cpu-armv9.2_2.so": "cb17dcb4256dfb5f6c71ad3219e5eaa820ae1063af83d11b05cb0f0183138b4c",
+        "libggml-rpc.so": "de56f52b7fcfb41258e9c0ccd1063f92143d82fd0fef482ac04e327f11c35de4",
+        "libggml.so": "41c7b6f7f61d26a4934227d1d01d1f90db7616485576940ad65c8e7d494c7ca7",
+        "libggml.so.0": "41c7b6f7f61d26a4934227d1d01d1f90db7616485576940ad65c8e7d494c7ca7",
+        "libggml.so.0.25.1": "41c7b6f7f61d26a4934227d1d01d1f90db7616485576940ad65c8e7d494c7ca7",
+        "libllama-batched-bench-impl.so": "8cc0ea591bd1367eb409fc326c448d729c427a999e3f1b189a5eee78d2aba82d",
+        "libllama-bench-impl.so": "020b33276e29203b086addfd82da655b16a6d75ec8b229145ed74a18322e1be2",
+        "libllama-cli-impl.so": "cbd8776616a183718335918080965edd423a27188c398d926e7cd2072d0b9306",
+        "libllama-common.so": "8e3aa7ed74ba96ae40ed7aeacef94b74bed09e126dd2981d9788afcd97e36baf",
+        "libllama-common.so.0": "8e3aa7ed74ba96ae40ed7aeacef94b74bed09e126dd2981d9788afcd97e36baf",
+        "libllama-common.so.0.5.0": "8e3aa7ed74ba96ae40ed7aeacef94b74bed09e126dd2981d9788afcd97e36baf",
+        "libllama-completion-impl.so": "7f2e31de2e6a09233c05532147dec3432dacda243f037366d107caa1249ee5b6",
+        "libllama-fit-params-impl.so": "d46fb3d857d8ce4003069d87bfb70ccbc0e3c78de99a9a258e9b671376bc1cbd",
+        "libllama-perplexity-impl.so": "c6887717f69ca6da4f3e377c0b1d81e177a5942ed407a93cebb912dbc651696b",
+        "libllama-quantize-impl.so": "53994e64f9933684e1da3545f8c977b769a3d1ccf7f49529e6854c7b20069568",
+        "libllama-server-impl.so": "11d3be76d42459a2dddfa11c3b1e30a6b57a0650081b648c48b63261e6ccb58f",
+        "libllama.so": "9e8510dbc0be6f51ba7bc4a3b1c80389a3cb1eefea8d0ac0e9aba5514f97dcb5",
+        "libllama.so.0": "9e8510dbc0be6f51ba7bc4a3b1c80389a3cb1eefea8d0ac0e9aba5514f97dcb5",
+        "libllama.so.0.5.0": "9e8510dbc0be6f51ba7bc4a3b1c80389a3cb1eefea8d0ac0e9aba5514f97dcb5",
+        "libmtmd.so": "7eb175b66dc177bc064eb67dd1217c98f94f72a66a111ebb820f66455f5131fb",
+        "libmtmd.so.0": "7eb175b66dc177bc064eb67dd1217c98f94f72a66a111ebb820f66455f5131fb",
+        "libmtmd.so.0.5.0": "7eb175b66dc177bc064eb67dd1217c98f94f72a66a111ebb820f66455f5131fb",
+        "llama-server": "96bd334f8c3c6cc7400c427aa7c7ba3406ff2ada5aa88dbe041e3b68a2e58244"
+      }
+    },
+    "win32-x64": {
+      "os": "win32",
+      "arch": "x64",
+      "compute": [
+        "cpu"
+      ],
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11158/llama-b11158-bin-win-cpu-x64.zip",
+      "bytes": 18561021,
+      "sha256": "4671aab1c7e4a5eb6f86a4253417f16719363adb5535f8ec772e239c2514e374",
+      "archive": {
+        "format": "zip",
+        "root": "."
+      },
+      "executable": "llama-server.exe",
+      "notices": [
+        "LICENSE-LLVM-OpenMP"
+      ],
+      "files": {
+        "LICENSE-LLVM-OpenMP": "fdad1758a9e1f9d5a81e18879b3406772115edc92c24bfa36b70c654f325e8e4",
+        "ggml-base.dll": "c2d9a0863b9a22a042e592a0c24be7125cc46562b67fbbeeda56e27c471125c6",
+        "ggml-cpu-alderlake.dll": "7e57079c3c61c9cf073f3fd9d0b76e396b25b6e0f601a8f8ffb8e023a7c2f9af",
+        "ggml-cpu-cannonlake.dll": "23a702418f6e4de898fbc188f824ee3df9364bff19a489a508cc95c6e4506ce7",
+        "ggml-cpu-cascadelake.dll": "3873fc176d0adf457e2f19328f47b05777964bf4a80cbd5c12f70e5dfc806218",
+        "ggml-cpu-cooperlake.dll": "78c86c952ccd897fa1012bcfc4c23e967f91346275f7803bb432c29113f794ed",
+        "ggml-cpu-haswell.dll": "0676864c185ae6d0fff3bdffc176cc9710b6edde78cc75761ea10f2c05282956",
+        "ggml-cpu-icelake.dll": "7517927c167c4fa22641fd1975f65c0293343133fac75c4c7e3a8ee6eb029678",
+        "ggml-cpu-ivybridge.dll": "dea0860bb74be47e3513b14a20cbd514128c576357594844c0eb0bdaa5216682",
+        "ggml-cpu-piledriver.dll": "a917c9b13476c13346aea0fe346a7e8486166a6c31b325f341c62ddaf716e41f",
+        "ggml-cpu-sandybridge.dll": "31e8157a9e479c8aaf75a2489873a3a37f4336a2f55774b0ebc39e78bcc51fc8",
+        "ggml-cpu-sapphirerapids.dll": "3d6ef6c34fa3cf1039ff0987549851f9c7091f55a1f568e2bc6c045d56df5a25",
+        "ggml-cpu-skylakex.dll": "ddb677a9c90a70c193776f26480a18ed276d7556676e4a2273ec0d94f80fcfdf",
+        "ggml-cpu-sse42.dll": "391705cef3fb4741a89391dbed193dda0444c82f114f270d32e73ecbad959cbe",
+        "ggml-cpu-x64.dll": "65372bd3fdc084f63061ef16f1cf768d99bd254a27b30a57c7d5d2e969cfa865",
+        "ggml-cpu-zen4.dll": "2eacb848e069f43645d6cb3625b42bd510313a650307f1f21dcbff3a8a2fea2f",
+        "ggml-rpc.dll": "7ea8d1319f9af4555d617347037aee5efe7cecd5c310447933ba411b70eab1ec",
+        "ggml.dll": "237e66553bc20345dfd460725094395aecf596e40661f85c690a198e93c29e26",
+        "libomp.dll": "a12116ba72d1d6820407cf30be23da04ce79d6bb8a71a5ee71759c5a1faa6f1c",
+        "llama-batched-bench-impl.dll": "0207230cb4a038e463ef8312add4dbf9283eb8592eae1151b7ae0a8aebb52ef9",
+        "llama-bench-impl.dll": "092570c586c13a4861886179cc08ee03ff711f3cc70471c8dec1e4913caf9037",
+        "llama-cli-impl.dll": "1cae8d19cc0c0da3d9cee254ca27a676b9480bde76a50f48fe81327ed2bad0fe",
+        "llama-common.dll": "8997b1891e9bdbc6013e43313a0d4a609983dbe53092dafb3cb297a09c62cc44",
+        "llama-completion-impl.dll": "3ef60fd540035631ab48ef4f28050a67c9e159ec6feeaf84248313198f4e5cd5",
+        "llama-fit-params-impl.dll": "763836d82b283f3e5f749b6ba28841907001f0d21f9e7179db7a140dcc63a1b5",
+        "llama-perplexity-impl.dll": "222ad4754224ec6dd6614d22569a677f2283fb389f60ba2dc19f620436c38ca9",
+        "llama-quantize-impl.dll": "9ee4d1c977d6457efa18da3af15107cea020322ed5ddc5ff60ab098295e42c01",
+        "llama-server-impl.dll": "dd716ce7b9b5577f167f3ef352d9a3962002380ac373d5355c2a2074362aec06",
+        "llama-server.exe": "f5701e49856ae0da9be0fbca9a24110cc52b3b64d3654b3266ed53f5444bfdf0",
+        "llama.dll": "9a704ee10381b6733e15fff33e1fff071930bf910e8c78a19026af327c4fd73b",
+        "mtmd.dll": "7c25dd5d4c28f8cdb7f7d2e1ce26580b5518c6945158e62f4476d7fec4f05c15"
+      }
     }
   }
 }

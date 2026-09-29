@@ -1,7 +1,9 @@
 // Explicit, isolated A/B runner. Run once per backend in separate Electron
 // processes so the two model copies are never held simultaneously.
-// electron scripts/evaluate-runtime.cjs --backend=worker|server --model=/...gguf
-//   --binary=/.../llama-server --projector=/...gguf --output=/...json [--media]
+// electron scripts/evaluate-runtime.cjs --backend=server|embedded --model=/...gguf --output=/...json
+//   [--binary=/.../llama-server | --download-runtime] [--projector=/...gguf] [--media] [--extended]
+//   [--audio=/.../speech.wav] [--offline] [--request-timeout=seconds]
+// Embedded mode acquires the runtime (--download-runtime) and projector like the app when not given.
 const { app } = require('electron');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -16,7 +18,9 @@ const args = Object.fromEntries(process.argv.slice(1).filter(arg => arg.startsWi
 for (const key of ['backend', 'model', 'output']) if (!args[key]) throw new Error(`Missing --${key}`);
 if (!['worker', 'server', 'embedded'].includes(args.backend)) throw new Error('backend must be worker, server or embedded');
 if (args.backend === 'worker' && !fs.existsSync(path.join(appRoot, 'src/backends/localWorker.js'))) throw new Error('The worker is retired. Set TRANZL_APP_ROOT to the saved pre-migration evaluation package to compare that baseline.');
-for (const key of ['model', ...(args.backend !== 'worker' ? ['binary'] : []), ...(args.media ? ['projector'] : [])]) {
+// Embedded mode can acquire the runtime (--download-runtime) and projector itself, as the app does.
+const acquires = args.backend === 'embedded';
+for (const key of ['model', ...(args.backend === 'server' || (acquires && !args['download-runtime']) ? ['binary'] : []), ...(args.media && !acquires ? ['projector'] : [])]) {
   if (typeof args[key] !== 'string' || !path.isAbsolute(args[key]) || !fs.statSync(args[key]).isFile()) throw new Error(`--${key} must be an absolute existing file path`);
 }
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-evaluation-'));
@@ -31,7 +35,7 @@ if (args.offline) {
 app.on('window-all-closed', () => {});
 const report = { date: new Date().toISOString(), backend: args.backend, platform: process.platform, arch: process.arch,
   os: os.release(), cpu: os.cpus()[0]?.model, ramBytes: os.totalmem(), electron: process.versions.electron,
-  node: process.versions.node, contextSize: 8192, cases: [], memoryMethod: 'Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.' };
+  node: process.versions.node, contextSize: 8192, requestTimeoutSeconds: Number(args['request-timeout'] || 90), cases: [], memoryMethod: 'Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.' };
 let engine, memoryTimer, peakRssKiB = 0, lastResult = null;
 async function digest(file) {
   const hash = crypto.createHash('sha256');
@@ -56,7 +60,7 @@ const defaultSystem = 'Answer accurately and briefly. Follow the requested forma
 async function ask(messages, extra = {}) {
   let text = '', thought = ''; const liveStats = [];
   const options = { messages, systemPrompt: defaultSystem, reasoning: false, maxTokens: 256,
-    signal: AbortSignal.timeout(90000), onChunk: delta => text += delta, onThought: delta => thought += delta,
+    signal: AbortSignal.timeout(report.requestTimeoutSeconds * 1000), onChunk: delta => text += delta, onThought: delta => thought += delta,
     onStats: stats => liveStats.push(stats), ...extra };
   const result = await engine.chat(options);
   assert.equal(text, result.translation, 'stream and final output must agree');
@@ -84,10 +88,15 @@ app.whenReady().then(async () => {
       const local = appRequire('./src/backends/local');
       const assets = appRequire('./src/backends/embeddedAssets'), dir = path.join(profile, 'multimodal');
       fs.mkdirSync(dir, { recursive: true });
+      report.runtimeTarget = `${process.platform}-${process.arch}`; report.runtimeArchiveSha256 = assets.runtimeFor().sha256;
       if (!args['download-runtime']) fs.symlinkSync(path.dirname(args.binary), path.dirname(assets.paths(dir).binary), 'dir');
       if (args.projector) fs.symlinkSync(args.projector, assets.paths(dir).projector);
       engine = {
-        load: async () => { await local.preload(args.model, status => { report.runtimeStatus = status; }); if (local.modelState().state !== 'ready') throw new Error(local.modelState().error || 'Preload failed'); },
+        load: async () => {
+          await local.preload(args.model, status => { report.runtimeStatus = status; });
+          if (local.modelState().state !== 'ready') throw new Error(local.modelState().error || 'Preload failed');
+          report.binarySha256 ??= await digest(assets.paths(dir).binary);
+        },
         chat: options => local.chat({ ...options, modelPath: args.model }),
         countTokens: options => local.countTokens({ ...options, modelPath: args.model }), stop: local.release,
       };
@@ -140,7 +149,8 @@ app.whenReady().then(async () => {
     if (args.extended) await check('near-limit-compaction', async () => {
       const { prepareContext } = appRequire('./src/chatCompaction');
       const messages = user('<attached-file name="synthetic.txt">\n' + ('Project ORCHID-729 launches on Friday. The owner is Ada. Budget is 420 euros.\n'.repeat(400)) + '\n</attached-file>\nWhat is the project code, owner, launch day, and budget?');
-      const original = JSON.stringify(messages), signal = AbortSignal.timeout(240000);
+      // Several model calls; scales with --request-timeout for slower CPU targets.
+      const original = JSON.stringify(messages), signal = AbortSignal.timeout(Math.max(240, 3 * report.requestTimeoutSeconds) * 1000);
       const prepared = await prepareContext({ messages, contextSize: 8192, effort: 'fast', signal,
         count: (items, system) => engine.countTokens({ messages: items, systemPrompt: system || defaultSystem, reasoning: false, signal }),
         summarize: async (items, system, maxTokens) => (await ask(items, { systemPrompt: system, maxTokens, signal })).translation });

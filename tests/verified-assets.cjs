@@ -85,5 +85,6 @@ test('runtime manifest pins every listed target completely', () => {
 test('runtime selection keeps the existing install path and rejects unvalidated targets', () => {
   const { paths } = require('../src/backends/embeddedAssets');
   assert.equal(paths('/data', 'darwin-arm64').binary, path.join('/data', 'llama-b11158', 'llama-server'));
-  for (const target of ['linux-x64', 'linux-arm64', 'win32-x64']) assert.throws(() => paths('/data', target), new RegExp(`not available for ${target}`));
+  assert.equal(paths('/data', 'win32-x64').binary, path.join('/data', 'llama-b11158', 'llama-server.exe'));
+  for (const target of ['win32-arm64', 'darwin-x64', 'linux-s390x']) assert.throws(() => paths('/data', target), new RegExp(`not available for ${target}`));
 });
