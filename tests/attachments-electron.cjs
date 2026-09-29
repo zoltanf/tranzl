@@ -1,7 +1,7 @@
 const appRoot = process.env.TRANZL_APP_ROOT || require('node:path').resolve(__dirname, '..');
 const appRequire = require('node:module').createRequire(require('node:path').join(appRoot, 'package.json'));
 // Exercises the real native readers inside Electron worker threads.
-const { app, clipboard, ClipboardItem } = require('electron');
+const { app, clipboard, ClipboardItem, BrowserWindow } = require('electron');
 const { readClipboardImage } = appRequire('./src/clipboardImage');
 const { Worker } = require('worker_threads');
 const fs = require('fs');
@@ -41,15 +41,30 @@ app.whenReady().then(async () => {
       assert.match((await read(filename)).content, /42/);
     }
     for (const type of ['doc', 'docx']) assert.match((await read(path.join(__dirname, 'fixtures', `synthetic.${type}`))).content, /The meeting is on Friday/);
+    // Product routing: AAC through Chromium's decoder in a sandboxed hidden window,
+    // Apple Lossless through Core Audio on macOS and explained elsewhere.
+    const { parseFile } = appRequire('./src/chatStore'), { decodeToWav } = appRequire('./src/audioDecoder');
+    const windows = BrowserWindow.getAllWindows().length, limit = 20 * 1024 * 1024;
+    const monoPeak = wav => {
+      assert.equal(wav.toString('ascii', 0, 4), 'RIFF'); assert.equal(wav.toString('ascii', 8, 12), 'WAVE');
+      const fmt = wav.indexOf('fmt ');
+      assert.equal(wav.readUInt16LE(fmt + 10), 1); assert.equal(wav.readUInt32LE(fmt + 12), 16000); assert.equal(wav.readUInt16LE(fmt + 22), 16);
+      let peak = 0; for (let i = wav.indexOf('data') + 8; i + 1 < wav.length; i += 2) peak = Math.max(peak, Math.abs(wav.readInt16LE(i)));
+      return peak;
+    };
     for (const codec of ['aac', 'alac']) {
-      const source = require('./audio-fixture.cjs').createM4a(root, codec);
-      const audio = await read(source);
-      assert.equal(audio.name, `${codec}.m4a`);
+      const source = path.join(__dirname, 'fixtures', `synthetic-${codec}.m4a`);
+      if (codec === 'alac' && process.platform !== 'darwin') { await assert.rejects(parseFile(source), /Apple Lossless/); continue; }
+      const audio = await parseFile(source);
       assert.equal(audio.format, 'wav'); assert.equal(audio.mime, 'audio/wav');
-      assert.equal(Buffer.from(audio.data, 'base64').toString('ascii', 0, 4), 'RIFF');
+      assert.ok(monoPeak(Buffer.from(audio.data, 'base64')) > 1000, `${codec}: right channel must survive`);
     }
+    const aac = fs.readFileSync(path.join(__dirname, 'fixtures', 'synthetic-aac.m4a'));
+    assert.ok(monoPeak(await decodeToWav(aac, { maxBytes: limit })) > 1000, 'Chromium decodes AAC without Core Audio');
+    assert.equal(await decodeToWav(Buffer.from('not audio'), { maxBytes: limit }), null);
+    await assert.rejects(decodeToWav(aac, { maxBytes: 1000 }), /converted audio exceeds 20 MB/);
+    assert.equal(BrowserWindow.getAllWindows().length, windows, 'decoder windows are destroyed');
     // Chromium printToPDF generates a real PDF for the worker's PDF.js path.
-    const { BrowserWindow } = require('electron');
     const window = new BrowserWindow({ show: false });
     await window.loadURL('data:text/html,<h1>Reader verification 1234</h1>');
     fs.writeFileSync(path.join(root, 'test.pdf'), await window.webContents.printToPDF({})); window.destroy();

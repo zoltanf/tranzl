@@ -81,44 +81,90 @@ for (const rows of [10000, 10001, 10002]) test(`spreadsheet row limit at ${rows}
   else await check;
 });
 
-for (const codec of ['aac', 'alac']) test(`M4A ${codec} converts locally to mono WAV and preserves the original`, { skip: process.platform !== 'darwin' }, async () => {
-  const { createM4a } = require('./audio-fixture.cjs');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-m4a-test-'));
+const m4a = codec => path.join(__dirname, 'fixtures', `synthetic-${codec}.m4a`);
+function assertMonoWav(file, name) {
+  assert.equal(file.name, name); assert.equal(file.kind, 'audio');
+  assert.equal(file.format, 'wav'); assert.equal(file.mime, 'audio/wav');
+  const wav = Buffer.from(file.data, 'base64');
+  assert.equal(wav.toString('ascii', 0, 4), 'RIFF');
+  const fmt = wav.indexOf('fmt ');
+  assert.equal(wav.readUInt16LE(fmt + 8), 1);
+  assert.equal(wav.readUInt16LE(fmt + 10), 1);
+  assert.equal(wav.readUInt32LE(fmt + 12), 16000);
+  assert.equal(wav.readUInt16LE(fmt + 22), 16);
+  const data = wav.indexOf('data') + 8;
+  let peak = 0;
+  for (let i = data; i + 1 < wav.length; i += 2) peak = Math.max(peak, Math.abs(wav.readInt16LE(i)));
+  assert.ok(peak > 1000, 'the right audio channel must survive mono conversion');
+  validateMessages([{ role: 'user', content: 'Transcribe', media: [file] }]);
+  assert.equal(openAIMessages([{ role: 'user', content: 'Transcribe', media: [file] }])[0].content.at(-1).input_audio.format, 'wav');
+}
+// A tiny valid WAV standing in for Chromium's decoder output.
+const fakeWav = Buffer.concat([Buffer.from('RIFF\0\0\0\0WAVE'), Buffer.alloc(32)]);
+// Copy of a fixture whose header claims a different duration (models long or lying files).
+async function withDeclaredSeconds(codec, seconds, run) {
+  const bytes = await fs.readFile(m4a(codec)), body = bytes.indexOf('mvhd') + 4;
+  bytes.writeUInt32BE(Math.round(seconds * bytes.readUInt32BE(body + 12)), body + 16);
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-m4a-')), file = path.join(dir, `${codec}.m4a`);
+  try { await fs.writeFile(file, bytes); await run(file); } finally { await fs.rm(dir, { recursive: true, force: true }); }
+}
+test('M4A headers report codec and declared duration', async () => {
+  const { mp4Info } = require('../src/attachments');
+  for (const [codec, fourcc] of [['aac', 'mp4a'], ['alac', 'alac']]) {
+    const info = mp4Info(await fs.readFile(m4a(codec)));
+    // AAC containers also count encoder priming/padding frames.
+    assert.equal(info.codec, fourcc); assert.ok(info.seconds >= 0.2 && info.seconds < 0.5, `${codec}: ${info.seconds}`);
+  }
+  assert.deepEqual(mp4Info(Buffer.from('not audio')), {});
+  assert.deepEqual(mp4Info(Buffer.from([0, 0, 0, 200, 0x6d, 0x6f, 0x6f, 0x76])), {}); // truncated box
+});
+test('AAC M4A uses the Chromium decoder on every platform', async () => {
+  for (const platform of ['darwin', 'linux', 'win32']) {
+    const calls = [];
+    const file = await readAttachment(m4a('aac'), { platform, decodeAudio: async (bytes, options) => { calls.push(options); return fakeWav; } });
+    assert.equal(file.format, 'wav'); assert.deepEqual(Buffer.from(file.data, 'base64'), fakeWav);
+    assert.deepEqual(calls, [{ maxBytes: 20 * 1024 * 1024 }]);
+  }
+});
+test('Apple Lossless and undecodable M4A are explained off macOS', async () => {
+  let called = false;
+  const decodeAudio = async () => { called = true; return null; };
+  await assert.rejects(readAttachment(m4a('alac'), { platform: 'linux', decodeAudio }), /Apple Lossless \(ALAC\) M4A is not supported on this platform; convert it to FLAC or WAV/);
+  assert.equal(called, false, 'ALAC skips Chromium');
+  await assert.rejects(readAttachment(m4a('aac'), { platform: 'win32', decodeAudio }), /could not decode M4A audio/);
+});
+test('M4A declaring more audio than fits the WAV limit is rejected before decoding', async () => {
+  let called = false;
+  await withDeclaredSeconds('aac', 700, async file => {
+    await assert.rejects(readAttachment(file, { platform: 'linux', decodeAudio: async () => { called = true; return fakeWav; } }), /converted audio exceeds 20 MB/);
+  });
+  assert.equal(called, false);
+  await assert.rejects(readAttachment(m4a('aac'), { platform: 'linux', decodeAudio: async () => Buffer.alloc(20 * 1024 * 1024 + 1) }), /converted audio exceeds 20 MB/);
+  await assert.rejects(readAttachment(m4a('aac'), { platform: 'linux', decodeAudio: async () => Buffer.from('not a wav file') }), /did not produce valid audio/);
+});
+
+// macOS Core Audio adapter: Apple Lossless, and the fallback when Chromium cannot decode.
+for (const codec of ['aac', 'alac']) test(`macOS converts ${codec} M4A locally to mono WAV and preserves the original`, { skip: process.platform !== 'darwin' }, async () => {
   const before = (await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort();
-  try {
-    const source = createM4a(dir, codec), original = await fs.readFile(source);
-    const file = await readAttachment(source);
-    assert.equal(file.name, `${codec}.m4a`); assert.equal(file.kind, 'audio');
-    assert.equal(file.format, 'wav'); assert.equal(file.mime, 'audio/wav');
-    const wav = Buffer.from(file.data, 'base64');
-    assert.equal(wav.toString('ascii', 0, 4), 'RIFF');
-    const fmt = wav.indexOf('fmt ');
-    assert.equal(wav.readUInt16LE(fmt + 8), 1);
-    assert.equal(wav.readUInt16LE(fmt + 10), 1);
-    assert.equal(wav.readUInt32LE(fmt + 12), 16000);
-    assert.equal(wav.readUInt16LE(fmt + 22), 16);
-    const data = wav.indexOf('data') + 8;
-    let peak = 0;
-    for (let i = data; i + 1 < wav.length; i += 2) peak = Math.max(peak, Math.abs(wav.readInt16LE(i)));
-    assert.ok(peak > 1000, 'the right audio channel must survive mono conversion');
-    validateMessages([{ role: 'user', content: 'Transcribe', media: [file] }]);
-    assert.equal(openAIMessages([{ role: 'user', content: 'Transcribe', media: [file] }])[0].content.at(-1).input_audio.format, 'wav');
-    assert.deepEqual(await fs.readFile(source), original);
-    assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
-  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+  const original = await fs.readFile(m4a(codec));
+  assertMonoWav(await readAttachment(m4a(codec), { decodeAudio: async () => null }), `synthetic-${codec}.m4a`);
+  assert.deepEqual(await fs.readFile(m4a(codec)), original);
+  assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
 });
 test('invalid M4A fails clearly and removes conversion files', { skip: process.platform !== 'darwin' }, async () => {
   const before = (await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort();
   await assert.rejects(fixture('broken.m4a', 'not audio', () => {}), /could not decode M4A/);
   assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
 });
-test('compressed M4A cannot bypass the decoded audio size limit', { skip: process.platform !== 'darwin' }, async () => {
+test('compressed M4A with a misleading header cannot bypass the decoded audio size limit', { skip: process.platform !== 'darwin' }, async () => {
   const { createM4a } = require('./audio-fixture.cjs');
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-m4a-limit-'));
   const before = (await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort();
   try {
-    const source = createM4a(dir, 'aac', 660);
-    assert.ok((await fs.stat(source)).size < 20 * 1024 * 1024);
+    const source = createM4a(dir, 'aac', 660), bytes = await fs.readFile(source), body = bytes.indexOf('mvhd') + 4;
+    bytes.writeUInt32BE(bytes.readUInt32BE(body + 12), body + 16); // claims one second
+    await fs.writeFile(source, bytes);
+    assert.ok(bytes.length < 20 * 1024 * 1024);
     await assert.rejects(readAttachment(source), /converted audio exceeds 20 MB/);
     assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
   } finally { await fs.rm(dir, { recursive: true, force: true }); }

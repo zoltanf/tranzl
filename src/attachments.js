@@ -7,8 +7,32 @@ const { promisify } = require('util');
 const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_TEXT = 120000;
 const EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'pdf', 'doc', 'docx', 'csv', 'tsv', 'xls', 'xlsx', 'wav', 'mp3', 'flac', 'm4a', 'txt', 'md', 'json', 'js', 'ts', 'jsx', 'tsx', 'py', 'html', 'css', 'xml', 'yaml', 'yml', 'log', 'sql', 'sh', 'rs', 'swift', 'c', 'h', 'cpp', 'java', 'go', 'toml', 'ini'];
-async function readM4a(filename) {
-  if (process.platform !== 'darwin') throw new Error('M4A conversion requires macOS; attach WAV, MP3 or FLAC instead');
+// 16 kHz mono 16-bit WAV must fit the 20 MB attachment limit.
+const MAX_AUDIO_SECONDS = (MAX_BYTES - 44) / 32000;
+// Reads the codec and declared duration from an MP4/M4A header without decoding.
+function mp4Info(bytes) {
+  const info = {};
+  const walk = (start, end) => {
+    for (let at = start; at + 8 <= end;) {
+      let size = bytes.readUInt32BE(at), header = 8;
+      const type = bytes.toString('latin1', at + 4, at + 8);
+      if (size === 1) { if (at + 16 > end) return; size = Number(bytes.readBigUInt64BE(at + 8)); header = 16; }
+      else if (size === 0) size = end - at;
+      if (size < header || at + size > end) return;
+      const body = at + header, boxEnd = at + size;
+      if (['moov', 'trak', 'mdia', 'minf', 'stbl'].includes(type)) walk(body, boxEnd);
+      else if (type === 'mvhd' && info.seconds == null && body + 32 <= boxEnd) {
+        const v1 = bytes[body] === 1, timescale = bytes.readUInt32BE(body + (v1 ? 20 : 12));
+        const duration = v1 ? Number(bytes.readBigUInt64BE(body + 24)) : bytes.readUInt32BE(body + 16);
+        if (timescale) info.seconds = duration / timescale;
+      } else if (type === 'stsd' && !info.codec && body + 16 <= boxEnd) info.codec = bytes.toString('latin1', body + 12, body + 16);
+      at = boxEnd;
+    }
+  };
+  walk(0, bytes.length);
+  return info;
+}
+async function afconvertToWav(filename) {
   // Core Audio handles AAC and Apple Lossless without downloading a converter.
   // Keep decoded audio in a private directory and remove it before returning.
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-audio-'));
@@ -20,20 +44,31 @@ async function readM4a(filename) {
       throw new Error(error.killed ? 'M4A conversion timed out; attach a shorter clip' : 'could not decode M4A audio; the file may be damaged, protected or use an unsupported codec');
     }
     if ((await fs.stat(output)).size > MAX_BYTES) throw new Error('converted audio exceeds 20 MB; attach a shorter clip');
-    const bytes = await fs.readFile(output);
-    if (bytes.length > MAX_BYTES) throw new Error('converted audio exceeds 20 MB; attach a shorter clip');
-    if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE') throw new Error('M4A conversion did not produce valid audio');
-    return bytes;
+    return await fs.readFile(output);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
+}
+// decodeAudio is Chromium's decoder (main process only; see audioDecoder.js). It covers
+// AAC on every platform; macOS Core Audio also covers Apple Lossless and anything Chromium rejects.
+async function readM4a(filename, bytes, { decodeAudio, platform = process.platform } = {}) {
+  const { codec, seconds } = mp4Info(bytes);
+  if (seconds > MAX_AUDIO_SECONDS) throw new Error('converted audio exceeds 20 MB; attach a shorter clip');
+  let wav = codec !== 'alac' && decodeAudio ? await decodeAudio(bytes, { maxBytes: MAX_BYTES }) : null;
+  if (!wav) {
+    if (platform !== 'darwin') throw new Error(codec === 'alac' ? 'Apple Lossless (ALAC) M4A is not supported on this platform; convert it to FLAC or WAV' : 'could not decode M4A audio; the file may be damaged, protected or use an unsupported codec');
+    wav = await afconvertToWav(filename);
+  }
+  if (wav.length > MAX_BYTES) throw new Error('converted audio exceeds 20 MB; attach a shorter clip');
+  if (wav.toString('ascii', 0, 4) !== 'RIFF' || wav.toString('ascii', 8, 12) !== 'WAVE') throw new Error('M4A conversion did not produce valid audio');
+  return wav;
 }
 function boundedText(content) {
   if (content.length > MAX_TEXT) throw new Error('extracted text exceeds 120,000 characters; attach a smaller section');
   if (!content.trim()) throw new Error('no readable text found');
   return content;
 }
-async function readAttachment(filename) {
+async function readAttachment(filename, options) {
   const stat = await fs.stat(filename);
   if (!stat.isFile()) throw new Error('not a regular file');
   if (stat.size > MAX_BYTES) throw new Error('maximum file size is 20 MB');
@@ -43,7 +78,7 @@ async function readAttachment(filename) {
   if (bytes.length > MAX_BYTES) throw new Error('maximum file size is 20 MB');
   const file = { name: path.basename(filename), size: bytes.length, kind: 'document', content: '' };
   if (extension === 'm4a') {
-    const audio = await readM4a(filename);
+    const audio = await readM4a(filename, bytes, options);
     return { ...file, kind: 'audio', format: 'wav', mime: 'audio/wav', data: audio.toString('base64'), summary: 'M4A audio · converted locally' };
   }
   if (['png', 'jpg', 'jpeg', 'webp'].includes(extension)) {
@@ -135,4 +170,4 @@ async function readAttachment(filename) {
   }
   return file;
 }
-module.exports = { readAttachment, EXTENSIONS, MAX_BYTES, MAX_TEXT };
+module.exports = { readAttachment, mp4Info, EXTENSIONS, MAX_BYTES, MAX_TEXT };

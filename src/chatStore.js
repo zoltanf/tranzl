@@ -1,9 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const { Worker } = require('worker_threads');
-const { EXTENSIONS } = require('./attachments');
+const { EXTENSIONS, readAttachment } = require('./attachments');
 const { createSecureStore } = require('./secureStore');
 function parseFile(filename) {
+  // M4A needs Chromium's decoder, which only exists outside worker threads.
+  if (path.extname(filename).toLowerCase() === '.m4a') return readAttachment(filename, { decodeAudio: require('./audioDecoder').decodeToWav });
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, 'attachmentWorker.js'), { workerData: filename, resourceLimits: { maxOldGenerationSizeMb: 384 } });
     const timer = setTimeout(() => { worker.terminate(); reject(new Error('file processing timed out')); }, 30000);
@@ -13,7 +15,7 @@ function parseFile(filename) {
   });
 }
 
-module.exports = function registerChatStore({ ipcMain, app, safeStorage, dialog }) {
+function registerChatStore({ ipcMain, app, safeStorage, dialog }) {
   const store = createSecureStore({ file: () => path.join(app.getPath('userData'), 'chats.enc'), safeStorage, label: 'Chats' });
   ipcMain.handle('chat-load', () => {
     const { data, persistent, error } = store.load();
@@ -38,4 +40,5 @@ module.exports = function registerChatStore({ ipcMain, app, safeStorage, dialog 
     }
     return { files, errors };
   });
-};
+}
+module.exports = Object.assign(registerChatStore, { parseFile });
