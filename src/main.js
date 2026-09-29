@@ -1,6 +1,12 @@
 const { app, BrowserWindow, ipcMain, nativeTheme, shell, screen, safeStorage, dialog, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
+// Select the data directory before anything reads it (see profile.js).
+try {
+  const profile = require('./profile').selectProfile(app);
+  if (profile.test) console.error(`Tranzl is using the test profile ${profile.dir}`);
+} catch (error) { console.error(error.message); process.exit(2); }
+
 const local = require('./backends/local');
 const { readClipboardImage } = require('./clipboardImage');
 ipcMain.handle('clipboard-image', async () => {
@@ -13,10 +19,6 @@ require('./chatStore')({ ipcMain, app, safeStorage, dialog, clipboard });
 
 const LM_STUDIO_BASE_URL = 'http://127.0.0.1:1234';
 const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
-
-// Pin the data directory to the same location regardless of how the app is
-// branded/packaged, so settings and the downloaded model survive packaging
-app.setPath('userData', path.join(app.getPath('appData'), 'tranzl'));
 
 // Persisted app settings: { backend: 'lmstudio' | 'local', localModelPath }
 let settings = {};

@@ -91,6 +91,12 @@ Add `--audio=/absolute/path/synthetic.wav` for transcription. Use `--download-ru
 
 The UI check uses a mocked model and temporary storage; it does not modify your saved chats.
 
+To launch the real app against a throwaway profile, set an absolute `TRANZL_TEST_PROFILE` before startup. Tranzl refuses (exit code 2) any path that is, contains or lies inside the normal profile, including through symlinks or case differences:
+
+```bash
+TRANZL_TEST_PROFILE=/tmp/tranzl-test-profile npm start
+```
+
 ## License
 
 Tranzl is free software under the [GPL-3.0-or-later](LICENSE). The embedded Gemma 4 E4B model is downloaded separately and is subject to Google's [Gemma Terms of Use](https://ai.google.dev/gemma/terms) — it is not covered by the GPL.
