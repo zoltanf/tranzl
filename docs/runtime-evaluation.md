@@ -1,12 +1,12 @@
 # Single inference runtime evaluation
 
-Updated: 2026-09-29. **Decision: adopt the managed llama.cpp server for Stage B integration.** Stage A passed on the existing Mac target. Production still uses the released dual-runtime path until Stage B passes its own gates. This is not a Windows/Linux compatibility certification.
+Updated: 2026-09-29. **Decision: adopt the managed llama.cpp server for Stage B integration.** Stage A passed on the existing Mac target. Stage B integration has also passed the Mac gates on this branch; released version 0.2.3 remains unchanged. This is not a Windows/Linux compatibility certification.
 
 Requirements: [multiplatform-requirements.md](multiplatform-requirements.md). Sequence: [multiplatform-plan.md](multiplatform-plan.md).
 
 ## What was evaluated
 
-The `serverRuntime.js` candidate owns one authenticated loopback server and a cancellable request queue. Text startup does not load the projector. First media use waits for the text process to exit before starting a media-capable process; subsequent text reuses it. No production renderer/IPC route has switched yet.
+The `serverRuntime.js` candidate owns one authenticated loopback server and a cancellable request queue. Text startup does not load the projector. First media use waits for the text process to exit before starting a media-capable process; subsequent text reuses it. This describes the Stage A experiment; Stage B now routes all embedded renderer/IPC requests through that adapter.
 
 The harness uses explicit, read-only model/runtime paths, synthetic prompts and attachments, and a temporary Electron profile. The separately signed `TranzlRuntimeEvaluation` app ran from `/private/tmp`, outside the checkout. It has its own entry point and bundle identity and was not installed or published.
 
@@ -69,7 +69,7 @@ Pinned implementation references: [server source](https://github.com/ggml-org/ll
 Provide explicit absolute asset paths. Run the backends sequentially:
 
 ```sh
-npm run evaluate:runtime -- --backend=worker --model=/absolute/model.gguf --output=/absolute/worker.json --extended
+TRANZL_APP_ROOT=/absolute/pre-migration-evaluation-app/Contents/Resources/app npm run evaluate:runtime -- --backend=worker --model=/absolute/model.gguf --output=/absolute/worker.json --extended
 npm run evaluate:runtime -- --backend=server --model=/absolute/model.gguf --binary=/absolute/llama-server --projector=/absolute/projector.gguf --output=/absolute/server.json --extended --media --audio=/absolute/synthetic-speech.wav
 npm run pack:evaluation -- /absolute/evaluation-output
 ```
@@ -78,8 +78,24 @@ The audio fixture says “The blue bicycle is beside the garden gate.” Use `--
 
 For packaged tests, invoke the evaluation executable directly with the same arguments from outside the checkout. `TRANZL_APP_ROOT` can select packaged modules for the existing UI/attachment checks. The evaluation app never opens the normal application or selects its persisted settings/profile.
 
-## Stage B handoff and limits
+## Stage B integration results
 
-Proceed with one shared embedded facade, lazy verified runtime/projector acquisition, pinned resumable model downloads, and existing-cache reuse. Preserve IPC and renderer behavior. Remove the worker and `node-llama-cpp` only after replacement downloader tests and integrated packaged Mac tests pass. Preserve this evidence as the rollback comparison.
+Stage B is complete on macOS ARM64. The production code now uses one lazy embedded facade for translation, Chat, context compaction and token counting. Media installation remains lazy, and application quit drains the owned server. The utility worker, old multimodal manager and `node-llama-cpp` are removed. Existing model names, cache paths and persisted data formats are unchanged.
 
-Not certified here: Windows/Linux (including ARM64), CPU fallback on those systems, broad GPU/driver support, low-memory behavior, internet/offline acquisition failure paths, or integrated first-run/update behavior. These remain explicit Stage B–F gates. There is no unresolved measured Mac text regression requiring a product tradeoff; actual occupied-context reporting is retained.
+The replacement downloader pins immutable URLs, expected sizes and SHA-256 hashes. It resumes partial downloads, validates range responses, preserves interrupted bytes and existing destinations on failure, and verifies before atomic promotion. Runtime installation verifies every listed companion library as well as the executable, stages extraction and rolls back a failed replacement. The immutable archive manifest is checked in beside the backend. Valid cached assets are reused offline; the server itself runs with `--offline`.
+
+| Integration check | Result |
+| --- | --- |
+| Automated tests | 66/66 full suite passed; added shutdown-during-acquisition regression then passed all 14 server tests (67 total current tests) |
+| Source and product-package UI/attachments | Both passed |
+| Fresh runtime acquisition | Download, archive checksum, extraction, library verification and all 17 real-model cases passed in a temporary profile |
+| Offline signed evaluation package | 17/17 real-model cases passed with non-loopback fetch forbidden |
+| Product package | `npm run pack` succeeded; ad-hoc signature verified; ~377 MiB on disk |
+| Dependency inventory | No `node-llama-cpp` in lockfile or product package; no dev-only `undici` in product package |
+| Dependency audit | Zero advisories after a compatible `undici` patch update |
+
+Evidence: [fresh acquisition](runtime-evidence/2026-09-29/integrated-download.json), [offline packaged integration](runtime-evidence/2026-09-29/integrated-packaged.json), [additional source inventory](runtime-evidence/2026-09-29/integration-inventory.json). The reports retain per-file source hashes because they were recorded before the integration commit. They contain synthetic prompts only. The previous worker comparison is reproducible using the retained Stage A evaluation package; the removed live-test scripts are replaced by the explicit-path isolated harness.
+
+The production package command had malformed ignore quoting introduced during Stage A; it is corrected and the real command was exercised. The released 0.2.3 artifact predates that change. Neither validation package was installed or published.
+
+Next: Stage C portable foundations. Still unvalidated: native Windows/Linux builds (including ARM64), CPU fallback there, broad GPU/driver support, low-memory behavior, clean-machine installation/upgrades, and full first-run UI acquisition on those targets. Downloader failure paths use deterministic small fixtures; the real acquisition check fetched the runtime and reused the already verified 4.6 GB model and projector. No full model re-download was needed. Mac packaged UI tests use a mocked backend; real inference runs separately through the packaged production facade. These checks do not certify an installer or a new public release.

@@ -5,9 +5,9 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --no-asar --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app --ignore='^/out --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app",
+    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --no-asar --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/out$' --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app",
     "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/",
-    "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs tests/server-runtime.cjs",
+    "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs tests/server-runtime.cjs tests/verified-assets.cjs",
     "test:electron": "electron tests/chat-ui.cjs && electron tests/attachments-electron.cjs",
     "evaluate:runtime": "electron scripts/evaluate-runtime.cjs",
     "pack:evaluation": "node scripts/package-evaluation.cjs"
@@ -27,12 +27,10 @@
     "dompurify": "^3.4.16",
     "mammoth": "^1.12.3",
     "marked": "^18.0.14",
-    "node-llama-cpp": "^3",
     "pdfjs-dist": "^4.10.38",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "allowScripts": {
-    "node-llama-cpp@3.19.1": true,
     "electron@44.4.5": true
   }
 }

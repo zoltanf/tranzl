@@ -102,3 +102,21 @@ test('missing executable fails without hanging or leaving a child', async () => 
   const runtime = createServerRuntime({ binary: path.join(__dirname, 'fixtures/does-not-exist'), modelPath: 'fixture.gguf' });
   await assert.rejects(runtime.load(), /ENOENT/); await runtime.stop(); assert.equal(runtime.state().pid, null);
 });
+test('shutdown cancels asset preparation and drains queued work without spawning', async () => {
+  let entered;
+  const preparing = new Promise(resolve => { entered = resolve; });
+  let spawned = false;
+  const runtime = createServerRuntime({
+    binary: 'unused', modelPath: 'unused',
+    prepareAssets: ({ signal }) => new Promise((resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      entered();
+    }),
+    spawnProcess: () => { spawned = true; throw new Error('must not spawn'); },
+  });
+  const loading = runtime.load(), queued = runtime.chat(options('queued'));
+  const results = Promise.allSettled([loading, queued]);
+  await preparing; await runtime.stop();
+  assert.ok((await results).every(result => result.status === 'rejected'));
+  assert.equal(spawned, false); assert.equal(runtime.state().pid, null);
+});

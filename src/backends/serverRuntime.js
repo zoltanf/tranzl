@@ -1,5 +1,5 @@
-// Evaluation candidate only. No production IPC or automatic asset downloads.
-// Assets are explicit, read-only paths; each instance owns one child and queue.
+// Managed inference process. Assets are prepared by an injected acquisition
+// layer inside the queue; each instance owns one child and all request cleanup.
 const { spawn } = require('node:child_process');
 const net = require('node:net');
 const crypto = require('node:crypto');
@@ -49,7 +49,7 @@ async function readCompletion(body, { signal, onChunk = () => {}, onThought = ()
 
 function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8192,
   gpu = 'auto', swaFullCache = true, startupTimeoutMs = 120000, shutdownTimeoutMs = 3000,
-  spawnProcess = spawn, onStatus = () => {} }) {
+  spawnProcess = spawn, onStatus = () => {}, prepareAssets = async () => {} }) {
   let child = null, endpoint = null, key = null, mediaLoaded = false;
   let exited = null, processAbort = null, queue = Promise.resolve(), stopping = null;
   let diagnostics = {};
@@ -72,10 +72,11 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     }
   }
 
-  async function ensure(signal, media = false) {
+  async function ensure(signal, media = false, report = () => {}) {
     signal.throwIfAborted();
     if (child && endpoint && (!media || mediaLoaded)) return;
     if (media && !projectorPath) throw new Error('A projector is required for image/audio inference');
+    await prepareAssets({ signal, media, onStatus: report });
     if (child) await terminate();
     signal.throwIfAborted();
     const port = await freePort();
@@ -83,7 +84,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     key = crypto.randomBytes(32).toString('hex');
     const args = ['--model', modelPath, '--host', '127.0.0.1', '--port', String(port),
       '--api-key', key, '--ctx-size', String(contextSize), '--parallel', '1', '--jinja',
-      '--no-webui', '--no-context-shift', '--reasoning-format', 'deepseek'];
+      '--no-webui', '--offline', '--no-context-shift', '--reasoning-format', 'deepseek'];
     if (media) args.push('--mmproj', projectorPath);
     else args.push('--no-mmproj');
     if (gpu === 'cpu') args.push('--gpu-layers', '0', '--no-mmproj-offload');
@@ -117,6 +118,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     const startup = AbortSignal.any([signal, ownerAbort.signal, AbortSignal.timeout(startupTimeoutMs)]);
     const url = `http://127.0.0.1:${port}`;
     onStatus({ state: 'loading', media, pid: current.pid });
+    report(media ? 'Loading image/audio model…' : 'Loading embedded model…');
     try {
       for (;;) {
         startup.throwIfAborted();
@@ -207,9 +209,9 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       ...(occupied ? { contextTokens: occupied.contextTokens, contextSize: occupied.contextSize, contextEstimated: false } : {}) };
   }
   return {
-    load: ({ signal, media = false } = {}) => enqueue(signal, active => ensure(active, media)),
+    load: ({ signal, media = false, onStatus } = {}) => enqueue(signal, active => ensure(active, media, onStatus)),
     countTokens: options => enqueue(options.signal, async active => {
-      await ensure(active, mediaRequired(options));
+      await ensure(active, mediaRequired(options), options.onStatus);
       const signal = AbortSignal.any([active, processAbort.signal]);
       const response = await post('/v1/chat/completions/input_tokens', payload(options), signal);
       const { input_tokens } = await response.json();
@@ -218,7 +220,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       return input_tokens;
     }),
     chat: options => enqueue(options.signal, async active => {
-      await ensure(active, mediaRequired(options));
+      await ensure(active, mediaRequired(options), options.onStatus);
       const signal = AbortSignal.any([active, processAbort.signal]), started = performance.now();
       const response = await post('/v1/chat/completions', { ...payload(options), stream: true,
         stream_options: { include_usage: true }, temperature: 0.2, max_tokens: options.maxTokens ?? 4096,

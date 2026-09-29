@@ -1,0 +1,14 @@
+{
+  "sourceHashes": {
+    "package.json": "bc120e823f315432bb15f14f4395fdacd12ee0222bcb005fd7319beb39ea575e",
+    "package-lock.json": "c9e2c07fadd37cfda99d98f6571ca3a030412ae569ea9d9f56a12bfa0c4dc7b2",
+    "src/main.js": "5a098e5be47497a0c9575ab150134e00ca59e8f86f2f01448a0218435fa52992",
+    "src/backends/runtime-files-darwin-arm64.json": "e7fe05bab2f972c2678a1327f2d1873ddab00dae42bdb8d24f7b459e53de2a4e"
+  },
+  "removedPackages": [
+    "node-llama-cpp"
+  ],
+  "packagedPlatform": "darwin-arm64",
+  "runtimeArchiveBytes": 11190982,
+  "runtimeArchiveSha256": "baf0d6366819beab9c4b85304117c5ab2f8a078c1a144ac26153efab48b884b8"
+}

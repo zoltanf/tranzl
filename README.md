@@ -23,7 +23,7 @@ Requirements: Apple Silicon Mac, ~8 GB free RAM for the embedded model.
 ## Run from source
 
 ```bash
-npm install
+npm ci
 npm start
 ```
 
@@ -42,11 +42,11 @@ scripts/release.sh
 
 ## How it works
 
-The renderer is a plain context-isolated Electron UI; all model access goes through the main process over IPC. The embedded backend runs [node-llama-cpp](https://node-llama-cpp.withcat.ai/) in a separate utility process so model loading and inference never block the UI; LM Studio and Ollama backends stream over their local HTTP APIs. A shared prompt builder makes all style presets behave identically across backends. Sensitive data (input history, custom prompts, chat sessions, drafts and attached file contents) is stored encrypted with a key held in the macOS Keychain.
+The renderer is a plain context-isolated Electron UI; all model access goes through the main process over IPC. The embedded backend uses one managed [llama.cpp](https://github.com/ggml-org/llama.cpp) server process for text, images, audio and token counting. Requests are serialized, the server requires a per-process authentication key and listens only on localhost, and shutdown waits for its exit; LM Studio and Ollama backends stream over their local HTTP APIs. A shared prompt builder makes all style presets behave identically across backends. Sensitive data (input history, custom prompts, chat sessions, drafts and attached file contents) is stored encrypted with a key held in the macOS Keychain.
 
 ## Chat
 
-The sidebar includes a context-usage ring and latest-response statistics: input/output tokens, tokens per second, cached input when reported, and timing. Statistics are saved with each reply. A `~` marks estimates; unavailable capacity or cache counts remain explicitly unknown. The text-only embedded runtime reports actual occupied context during generation. Character-based live input/output estimates never drive the context ring. Server response totals are labeled as estimated request size rather than occupied context; estimates over capacity are explicitly marked. New chat and Clear all sessions are in the Chat toolbar.
+The sidebar includes a context-usage ring and latest-response statistics: input/output tokens, tokens per second, cached input when reported, and timing. Statistics are saved with each reply. A `~` marks estimates; unavailable capacity or cache counts remain explicitly unknown. The text-only embedded runtime reports actual occupied context during generation. Character-based live input/output estimates never drive the context ring. After image/audio support is activated, embedded context totals remain labeled as estimates until the app restarts. External server response totals are labeled as estimated request size rather than occupied context; estimates over capacity are explicitly marked. New chat and Clear all sessions are in the Chat toolbar.
 
 When a request approaches the model's context window (about 75% of capacity, earlier when more response space is needed), Tranzl automatically compacts context before sending: older messages, oversized documents and attachments are summarized by the local model while the most recent exchanges stay intact. A progress bar with a percentage shows how much of the context has been summarized; the compacted working context is saved with the session and reused on the next turn, and a small "Context compacted" notice shows the token reduction. The full conversation with original attachments remains saved, so specific details can still be retrieved later. Summaries may omit details.
 
@@ -62,7 +62,7 @@ Attach up to 8 files per message, 20 MB per file:
 
 Extraction runs in background workers. A file may contain up to 120,000 extracted characters, a PDF up to 100 pages including at most 4 scanned pages, and a sheet up to 10,000 rows. A conversation is limited to 200,000 text characters, 12 images/scanned pages, 2 audio clips and 40 MB of media. The model's context window may impose a smaller practical limit. Oversized files are rejected with an explanation rather than silently truncated.
 
-The embedded image/audio path uses a pinned, checksum-verified llama.cpp runtime and Gemma projector, downloaded once to `~/Library/Application Support/tranzl/multimodal/` (about 545 MB total). It reuses the existing model file, unloads the text-only worker to avoid holding two model copies, and starts an authenticated server bound only to `127.0.0.1`. Subsequent embedded requests use that runtime until the app exits. Downloads require internet once; inference and file reading remain on-device. LM Studio and Ollama image input requires a vision-capable model in the selected server.
+Embedded inference downloads a pinned, checksum-verified runtime archive (~11 MB) to `~/Library/Application Support/tranzl/multimodal/` on first use. Images/audio additionally download a Gemma projector (~534 MiB) only when needed. Activating media restarts the same managed server after its old process exits, reusing the model file and avoiding two model copies. Model and component downloads resume after interruption and verify SHA-256 before replacement; cached files are verified and reused offline. Downloads require internet once; inference and file reading remain on-device. LM Studio and Ollama image input requires a vision-capable model in the selected server.
 
 Attachment contents, resized images and audio bytes are encrypted with the session store. Original files are never changed. Markdown includes tables, lists, links, blockquotes and fenced code; model-generated HTML is sanitized and remote images are blocked.
 
@@ -75,7 +75,13 @@ npm test
 npm run test:electron
 ```
 
-For an opt-in test against the installed Gemma model, run `node tests/multimodal-live.cjs` with Tranzl closed; it downloads missing multimodal components and tests synthetic image recognition and audio transcription.
+Real-model checks use an isolated temporary profile and explicitly selected assets:
+
+```bash
+npm run evaluate:runtime -- --backend=embedded --model=/absolute/path/model.gguf --binary=/absolute/path/llama-server --projector=/absolute/path/projector.gguf --media --extended --offline --output=/absolute/path/report.json
+```
+
+Add `--audio=/absolute/path/synthetic.wav` for transcription. Use `--download-runtime` instead of `--offline` to test fresh runtime acquisition. `npm run pack:evaluation` builds a separate evaluation app; it does not install or publish Tranzl. See [runtime evidence](docs/runtime-evaluation.md) and the [multiplatform implementation plan](docs/multiplatform-plan.md). Windows and Linux (x64 and ARM64) are planned; this branch currently validates macOS ARM64 only.
 
 The UI check uses a mocked model and temporary storage; it does not modify your saved chats.
 

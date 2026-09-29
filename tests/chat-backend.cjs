@@ -10,7 +10,7 @@ function harness(backend, fetch) {
   const handlers = new Map(), events = [], calls = [];
   const electron = { ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
     app: { setPath() {}, getPath: () => '/tmp', whenReady: () => ({ then() {} }), on() {} } };
-  const local = { modelState: () => ({ contextSize: 8192 }), countTokens: async () => 100, MODEL_LABEL: 'test model', translate: async options => { calls.push(options); options.onChunk('Hello'); return { translation: 'Hello' }; } };
+  const local = { modelState: () => ({ contextSize: 8192 }), countTokens: async () => 100, MODEL_LABEL: 'test model', chat: async options => { calls.push(options); options.onChunk('Hello'); return { translation: 'Hello' }; } };
   const realRequire = createRequire(mainPath);
   const context = vm.createContext({ require: name => name === 'electron' ? electron : name === './backends/local' ? local : realRequire(name), AbortController, AbortSignal, TextDecoder, fetch, Buffer, console, __dirname: path.dirname(mainPath) });
   vm.runInContext(fs.readFileSync(mainPath, 'utf8') + `\nsettings = { backend: ${JSON.stringify(backend)} };`, context);
@@ -21,11 +21,11 @@ const messages = [{ role: 'user', content: 'My name is Sam' }, { role: 'assistan
 test('embedded chat restores turns and keeps translation requests independent', async () => {
   const h = harness('local');
   await h.handlers.get('chat-send')(h.event, { messages, requestId: 'chat', effort: 'thorough' });
-  assert.equal(h.calls[0].history.length, 2); assert.equal(h.calls[0].reasoning, true);
+  assert.equal(h.calls[0].messages.length, 3); assert.equal(h.calls[0].reasoning, true);
   assert.match(h.calls[0].systemPrompt, /helpful local assistant/);
   assert.ok(h.events.every(e => e.channel === 'chat-event'));
   await h.handlers.get('translate')(h.event, { text: 'Hi', targetLanguage: 'German' });
-  assert.equal(h.calls[1].history.length, 0); assert.match(h.calls[1].systemPrompt, /translation and text-editing/);
+  assert.equal(h.calls[1].messages.length, 1); assert.match(h.calls[1].systemPrompt, /translation and text-editing/);
 });
 for (const backend of ['ollama', 'lmstudio']) test(`${backend}: history, thinking and final unterminated stream line`, async () => {
   let body;

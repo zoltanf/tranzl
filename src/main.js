@@ -6,7 +6,6 @@ const { readClipboardImage } = require('./clipboardImage');
 ipcMain.handle('clipboard-image', async () => {
   try { return await readClipboardImage(clipboard); } catch (error) { return { error: error.message }; }
 });
-const multimodal = require('./backends/multimodal');
 const { prepareContext } = require('./chatCompaction');
 const { validateMessages, openAIMessages, ollamaMessages } = require('./chatProtocol');
 require('./chatStore')({ ipcMain, app, safeStorage, dialog, clipboard });
@@ -203,7 +202,7 @@ ipcMain.handle('list-models', async () => {
 
 // Read the loaded context capacity, never the model's theoretical maximum.
 async function chatModelInfo(model, backend = settings.backend) {
-  if (backend === 'local') return { contextSize: multimodal.isActive() ? 8192 : local.modelState().contextSize ?? null, backend, images: true, audio: true };
+  if (backend === 'local') return { contextSize: local.modelState().contextSize ?? null, backend, images: true, audio: true };
   try {
     const url = backend === 'ollama' ? `${OLLAMA_BASE_URL}/api/ps` : `${LM_STUDIO_BASE_URL}/api/v1/models`;
     const response = await fetch(url, { signal: AbortSignal.timeout(1500) });
@@ -405,7 +404,6 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
       (text?.trim() ? `\n\nAccompanying source text:\n${text}` : '');
   }
   let conversation = chat ? messages : [{ role: 'user', content: text, ...(images.length ? { media: images } : {}) }];
-  const hasMedia = conversation.some(m => m.media?.length);
   const hasAudio = conversation.some(m => m.media?.some(f => f.kind === 'audio'));
   if (hasAudio && backend !== 'local') return { ok: false, error: 'Audio attachments currently require the Embedded backend. Choose it in Settings.' };
   if (chat) text = conversation.at(-1)?.content || '';
@@ -431,13 +429,12 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
       abort.signal.throwIfAborted();
       const contextSize = backend === 'local' ? (info.contextSize || 8192) : info.contextSize;
       if (contextSize) {
-        const useMultimodal = backend === 'local' && (hasMedia || multimodal.isActive());
-        const common = { dir: path.join(app.getPath('userData'), 'multimodal'), modelPath: settings.localModelPath,
-          signal: abort.signal, releaseTextModel: local.release, onStatus: status => send({ type: 'status', status }) };
+        const common = { modelPath: settings.localModelPath,
+          signal: abort.signal, onStatus: status => send({ type: 'status', status }) };
         const count = async (items, prompt = system) => {
           if (backend === 'local') {
             const options = { ...common, messages: items, systemPrompt: prompt, reasoning: prompt === system && effort !== 'fast' };
-            return useMultimodal ? multimodal.countTokens(options) : local.countTokens(options);
+            return local.countTokens(options);
           }
           // These servers do not expose a common tokenizer API. Use a conservative
           // estimate, labelled as such in the compaction notice, never as KV occupancy.
@@ -449,7 +446,7 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
           if (backend === 'local') {
             const options = { ...common, systemPrompt: prompt, messages: items, text: items.at(-1).content,
               history: items.slice(0, -1), reasoning: false, maxTokens: limit, onChunk() {}, onThought() {} };
-            return (await (useMultimodal ? multimodal.chat(options) : local.translate(options))).translation;
+            return (await local.chat(options)).translation;
           }
           const ollama = backend === 'ollama';
           const response = await fetch(ollama ? `${OLLAMA_BASE_URL}/api/chat` : `${LM_STUDIO_BASE_URL}/v1/chat/completions`, {
@@ -480,25 +477,16 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
 
   if (backend === 'local') {
     try {
-      const useMultimodal = hasMedia || multimodal.isActive();
-      const { translation, stats } = useMultimodal ? await multimodal.chat({
-        dir: path.join(app.getPath('userData'), 'multimodal'), modelPath: settings.localModelPath,
-        systemPrompt: system, messages: conversation, maxTokens, reasoning: chat || images.length ? effort !== 'fast' : effort === 'thorough',
-        signal: abort.signal, releaseTextModel: local.release,
-        onStatus: status => send({ type: 'status', status }),
-        onChunk: delta => send({ type: 'chunk', delta }), onThought: delta => send({ type: 'thinking', delta }),
-      }) : await local.translate({
+      const { translation, stats } = await local.chat({
         modelPath: settings.localModelPath,
-        systemPrompt: system,
-        maxTokens,
-        history: chat ? conversation.slice(0, -1) : [],
-        text,
-        // Gemma 4 defaults to thinking on for chat; preserve translation presets.
-        reasoning: chat ? effort !== 'fast' : effort === 'thorough',
+        systemPrompt: system, messages: conversation, maxTokens,
+        // Preserve text and image translation reasoning presets.
+        reasoning: chat || images.length ? effort !== 'fast' : effort === 'thorough',
         signal: abort.signal,
-        onChunk: (delta) => send({ type: 'chunk', delta }),
-        onThought: (delta) => send({ type: 'thinking', delta }),
-        onStats: (stats) => send({ type: 'stats', stats }),
+        onStatus: status => send({ type: 'status', status }),
+        onChunk: delta => send({ type: 'chunk', delta }),
+        onThought: delta => send({ type: 'thinking', delta }),
+        onStats: stats => send({ type: 'stats', stats }),
       });
       const outputCapped = chat && maxTokens && stats?.outputTokens != null && stats.outputTokens >= maxTokens ? maxTokens : null;
       send({ type: 'done', translation: translation.trim(), model: local.MODEL_LABEL, stats, outputCapped });
@@ -828,4 +816,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('before-quit', () => { chatRequest.abort?.abort(); translationRequest.abort?.abort(); multimodal.stop(); });
+let shuttingDown = false;
+app.on('before-quit', event => {
+  if (shuttingDown) return;
+  event.preventDefault(); shuttingDown = true;
+  chatRequest.abort?.abort(); translationRequest.abort?.abort();
+  local.release().catch(error => console.error('Embedded shutdown failed:', error.message)).finally(() => app.quit());
+});
