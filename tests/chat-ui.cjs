@@ -49,8 +49,9 @@ app.whenReady().then(async () => {
   const errors = [];
   win.webContents.on('console-message', (_e, level, message, line, sourceId) => { if (level >= 3) errors.push(`${message} (${sourceId}:${line})`); });
   const run = code => win.webContents.executeJavaScript(code);
-  async function waitFor(code) {
-    for (let i = 0; i < 100; i++) { if (await run(code)) return; await new Promise(r => setTimeout(r, 20)); }
+  // Generous deadline: hosted CI runners are much slower than a developer machine.
+  async function waitFor(code, ms = 10000) {
+    for (const end = Date.now() + ms; Date.now() < end;) { if (await run(code)) return; await new Promise(r => setTimeout(r, 20)); }
     throw new Error(`Timed out: ${code}`);
   }
   try {
@@ -273,7 +274,7 @@ app.whenReady().then(async () => {
     replace('history-save', () => { saves.push('history'); return { ok: true }; });
     await reload();
     const hidden = id => run(`document.getElementById(${JSON.stringify(id)}).hidden`);
-    const until = async (check, message) => { for (let i = 0; i < 100 && !check(); i++) await new Promise(r => setTimeout(r, 20)); assert.ok(check(), message); };
+    const until = async (check, message) => { for (const end = Date.now() + 10000; !check() && Date.now() < end;) await new Promise(r => setTimeout(r, 20)); assert.ok(check(), message); };
     assert.deepEqual([await hidden('chat-retry'), await hidden('chat-reset'), await hidden('chat-reveal'), await hidden('chat-storage-actions')], [false, false, true, false]);
     await ask('Question while locked');
     await run(`document.getElementById('chat-retry').click()`);

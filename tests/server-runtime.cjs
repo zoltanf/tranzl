@@ -96,7 +96,8 @@ for (const mode of ['missing-slots', 'invalid-slots']) test(`${mode} never claim
 });
 test('a server ignoring SIGTERM is killed before stop resolves', async t => {
   const { runtime, children } = fixture(t, 'ignore-term'); await runtime.load(); await runtime.stop();
-  assert.equal(children[0].child.signalCode, 'SIGKILL'); assert.equal(runtime.state().pid, null);
+  // Windows has no catchable SIGTERM: kill() already terminates, so no escalation is needed.
+  assert.equal(children[0].child.signalCode, process.platform === 'win32' ? 'SIGTERM' : 'SIGKILL'); assert.equal(runtime.state().pid, null);
 });
 test('missing executable fails without hanging or leaving a child', async () => {
   const runtime = createServerRuntime({ binary: path.join(__dirname, 'fixtures/does-not-exist'), modelPath: 'fixture.gguf' });
