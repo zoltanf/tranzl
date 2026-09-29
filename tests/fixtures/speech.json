@@ -1,0 +1,9 @@
+{
+  "source": "LJ Speech Dataset 1.1, clip LJ028-0418 (wavs/LJ028-0418.wav), read by Linda Johnson for LibriVox",
+  "url": "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2",
+  "license": "Public domain. https://keithito.com/LJ-Speech-Dataset/ states: \"This dataset is in the public domain in the US (and most likely other countries as well). There are no restrictions on its use.\"",
+  "format": "Unmodified from the archive: WAV, 22050 Hz, mono, 16-bit PCM, 5.97 s",
+  "sha256": "6ecf6ddd320394d14af6307d9b8ea9c4f0873b3b83606a55cb8fe6294350f622",
+  "transcript": "About that same time Pietro della Valle, an Italian, visited Babylon,",
+  "expect": ["Italian", "Babylon"]
+}

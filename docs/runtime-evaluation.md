@@ -70,7 +70,7 @@ Provide explicit absolute asset paths. Run the backends sequentially:
 
 ```sh
 TRANZL_APP_ROOT=/absolute/pre-migration-evaluation-app/Contents/Resources/app npm run evaluate:runtime -- --backend=worker --model=/absolute/model.gguf --output=/absolute/worker.json --extended
-npm run evaluate:runtime -- --backend=server --model=/absolute/model.gguf --binary=/absolute/llama-server --projector=/absolute/projector.gguf --output=/absolute/server.json --extended --media --audio=/absolute/synthetic-speech.wav
+npm run evaluate:runtime -- --backend=server --model=/absolute/model.gguf --binary=/absolute/llama-server --projector=/absolute/projector.gguf --output=/absolute/server.json --extended --media --audio=/absolute/path/to/tests/fixtures/speech.wav
 npm run pack:evaluation -- /absolute/evaluation-output
 ```
 
@@ -120,3 +120,5 @@ Stage C (portable foundations) changed runtime selection, packaging, secure stor
 | Cold load (warm filesystem cache) | 3.57 s | 3.76 s |
 
 The differences are within run-to-run noise and far below the investigation thresholds. Evidence: [source](runtime-evidence/2026-09-29/stage-c-source.json), [packaged](runtime-evidence/2026-09-29/stage-c-packaged.json). Only Mac ARM64 is validated; Windows and Linux (x64 and ARM64) remain Stage D.
+
+The audio case in the Stage A–C reports used a macOS `say` clip that was never committed. Later runs use the committed public-domain LJ Speech clip `tests/fixtures/speech.wav`, with its expected words and checksum in `speech.json`. It passed the full 17-case Mac run at the same checkpoint.

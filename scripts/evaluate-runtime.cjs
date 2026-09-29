@@ -159,10 +159,13 @@ app.whenReady().then(async () => {
       });
       await check('text-after-media', async () => { const result = await ask(user('Translate into German: Good morning.')); assert.match(result.output, /Guten Morgen/i); return result; });
       if (args.audio) await check('audio-transcription', async () => {
-        const bytes = fs.readFileSync(args.audio);
+        // Expected words come from a sidecar next to the clip, e.g. tests/fixtures/speech.json.
+        const bytes = fs.readFileSync(args.audio), { expect, sha256 } = JSON.parse(fs.readFileSync(args.audio.replace(/\.wav$/i, '.json'), 'utf8'));
         assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+        assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), sha256, 'audio clip does not match its sidecar');
         const result = await ask([{ role: 'user', content: 'Transcribe the spoken words. Output only the transcript.', media: [{ kind: 'audio', format: 'wav', mime: 'audio/wav', data: bytes.toString('base64') }] }], { reasoning: true, maxTokens: 512 });
-        assert.match(result.output, /blue bicycle/i); assert.match(result.output, /garden gate/i); return result;
+        for (const word of expect) assert.match(result.output, new RegExp(word, 'i'));
+        return result;
       });
     }
   } catch (error) { report.fatal = error.message; console.error(error); }

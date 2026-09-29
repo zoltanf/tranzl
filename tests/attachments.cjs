@@ -176,3 +176,10 @@ test('attachment capabilities report platform limits', () => {
   assert.ok(['doc', 'docx', 'm4a'].every(extension => attachmentCapabilities('linux').extensions.includes(extension)));
   assert.equal(attachmentCapabilities().extensions, EXTENSIONS);
 });
+test('public-domain speech fixture matches its provenance sidecar and attaches as WAV', async () => {
+  const clip = path.join(__dirname, 'fixtures', 'speech.wav'), sidecar = JSON.parse(await fs.readFile(clip.replace(/\.wav$/, '.json'), 'utf8'));
+  assert.equal(require('node:crypto').createHash('sha256').update(await fs.readFile(clip)).digest('hex'), sidecar.sha256);
+  assert.ok(sidecar.expect.every(word => sidecar.transcript.includes(word)));
+  const file = await readAttachment(clip);
+  assert.equal(file.kind, 'audio'); assert.equal(file.format, 'wav');
+});
