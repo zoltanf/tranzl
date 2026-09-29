@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('tranzl', {
+  platform: process.platform,
+  attachmentCapabilities: () => ipcRenderer.invoke('attachment-capabilities'),
   clipboardImage: () => ipcRenderer.invoke('clipboard-image'),
   chatModelInfo: (model) => ipcRenderer.invoke('chat-model-info', model),
   chatSend: (options) => ipcRenderer.invoke('chat-send', options),

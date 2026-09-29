@@ -48,7 +48,7 @@ scripts/release.sh
 
 ## How it works
 
-The renderer is a plain context-isolated Electron UI; all model access goes through the main process over IPC. The embedded backend uses one managed [llama.cpp](https://github.com/ggml-org/llama.cpp) server process for text, images, audio and token counting. Requests are serialized, the server requires a per-process authentication key and listens only on localhost, and shutdown waits for its exit; LM Studio and Ollama backends stream over their local HTTP APIs. A shared prompt builder makes all style presets behave identically across backends. Sensitive data (input history, custom prompts, chat sessions, drafts and attached file contents) is stored encrypted with a key held in the macOS Keychain.
+The renderer is a plain context-isolated Electron UI; all model access goes through the main process over IPC. The embedded backend uses one managed [llama.cpp](https://github.com/ggml-org/llama.cpp) server process for text, images, audio and token counting. Requests are serialized, the server requires a per-process authentication key and listens only on localhost, and shutdown waits for its exit; LM Studio and Ollama backends stream over their local HTTP APIs. A shared prompt builder makes all style presets behave identically across backends. Sensitive data (input history, custom prompts, chat sessions, drafts and attached file contents) is stored encrypted with a key held in the OS credential store (the Keychain on macOS).
 
 ## Chat
 

@@ -1,4 +1,5 @@
 const sourceEl = document.getElementById('source');
+sourceEl.title = `${window.tranzl.platform === 'darwin' ? '⌘↩' : 'Ctrl+Enter'} runs immediately`;
 const outputEl = document.getElementById('output');
 let outputText = '';
 function setOutput(text) {

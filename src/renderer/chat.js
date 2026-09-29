@@ -399,6 +399,10 @@
   el('effort').onchange = () => { if (current()) current().effort = el('effort').value; persist(true); };
   el('new').onclick = newChat;
   el('search').oninput = renderSessions;
+  window.tranzl.attachmentCapabilities().then(({ maxFiles, maxBytes, unsupported }) => {
+    el('attach').title = `Images, documents, spreadsheets, audio and text · up to ${maxFiles} files, ${maxBytes / 1048576} MB each`
+      + (unsupported.length ? ` · Not supported on this computer: ${unsupported.join(', ')}` : '');
+  }).catch(() => {});
   el('attach').onclick = async () => {
     const session = current();
     attaching = true; controls();

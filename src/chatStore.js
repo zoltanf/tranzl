@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Worker } = require('worker_threads');
-const { EXTENSIONS, readAttachment } = require('./attachments');
+const { attachmentCapabilities, readAttachment } = require('./attachments');
 const { createSecureStore } = require('./secureStore');
 function parseFile(filename) {
   // M4A needs Chromium's decoder, which only exists outside worker threads.
@@ -25,16 +25,17 @@ function registerChatStore({ ipcMain, app, safeStorage, dialog }) {
     if (!data || !Array.isArray(data.sessions)) return { ok: false, error: 'Invalid chat data' };
     return store.save(data);
   });
+  ipcMain.handle('attachment-capabilities', () => attachmentCapabilities());
   ipcMain.handle('chat-attach', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Attach images, documents, spreadsheets or audio', properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Supported files', extensions: EXTENSIONS }],
+      filters: [{ name: 'Supported files', extensions: attachmentCapabilities().extensions }],
     });
     if (canceled) return { files: [], errors: [] };
     const files = [], errors = [];
     for (const filename of filePaths) {
       try {
-        if (files.length >= 8) throw new Error('attach up to 8 files at a time');
+        if (files.length >= attachmentCapabilities().maxFiles) throw new Error('attach up to 8 files at a time');
         files.push(await parseFile(filename));
       } catch (err) { errors.push(`${path.basename(filename)}: ${err.message}`); }
     }

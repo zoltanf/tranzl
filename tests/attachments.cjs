@@ -169,3 +169,10 @@ test('compressed M4A with a misleading header cannot bypass the decoded audio si
     assert.deepEqual((await fs.readdir(os.tmpdir())).filter(name => name.startsWith('tranzl-audio-')).sort(), before);
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
+test('attachment capabilities report platform limits', () => {
+  const { attachmentCapabilities, EXTENSIONS } = require('../src/attachments');
+  assert.deepEqual(attachmentCapabilities('darwin').unsupported, []);
+  for (const platform of ['linux', 'win32']) assert.deepEqual(attachmentCapabilities(platform).unsupported, ['Apple Lossless (ALAC) M4A']);
+  assert.ok(['doc', 'docx', 'm4a'].every(extension => attachmentCapabilities('linux').extensions.includes(extension)));
+  assert.equal(attachmentCapabilities().extensions, EXTENSIONS);
+});

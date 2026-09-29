@@ -170,4 +170,8 @@ async function readAttachment(filename, options) {
   }
   return file;
 }
-module.exports = { readAttachment, mp4Info, EXTENSIONS, MAX_BYTES, MAX_TEXT };
+// What this platform can read, for the file dialog and the UI (see readM4a for the ALAC rule).
+function attachmentCapabilities(platform = process.platform) {
+  return { extensions: EXTENSIONS, maxFiles: 8, maxBytes: MAX_BYTES, unsupported: platform === 'darwin' ? [] : ['Apple Lossless (ALAC) M4A'] };
+}
+module.exports = { readAttachment, mp4Info, attachmentCapabilities, EXTENSIONS, MAX_BYTES, MAX_TEXT };

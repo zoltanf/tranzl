@@ -19,6 +19,7 @@ const handlers = {
   'cancel-translate': () => ({ ok: true }),
   'translate': (event, options) => { lastTranslation = options; translationSender = event.sender; return { ok: true, translation: 'Translated image text', model: options.model, stats }; },
   'chat-model-info': () => ({ contextSize: 8192 }),
+  'attachment-capabilities': () => ({ maxFiles: 8, maxBytes: 20 * 1024 * 1024, unsupported: ['Apple Lossless (ALAC) M4A'] }),
   'get-setup': () => ({ backend: 'lmstudio', theme: 'dark', modelReady: false, modelLabel: 'Test model' }),
   'list-models': () => ({ ok: true, models: ['Local test model'] }),
   'history-load': () => ({ store: null, persistent: true }), 'history-save': () => ({ ok: true }),
@@ -56,6 +57,9 @@ app.whenReady().then(async () => {
     await win.loadFile(path.resolve(appRoot, 'src/renderer/index.html'));
     await waitFor(`!document.getElementById('chat-input').disabled`);
     assert.equal(await run(`document.querySelector('#tab-chat #chat-new') !== null && document.querySelector('#tab-chat #chat-clear') !== null`), true);
+    await waitFor(`document.getElementById('chat-attach').title.includes('Not supported on this computer: Apple Lossless (ALAC) M4A')`);
+    assert.match(await run(`document.getElementById('chat-attach').title`), /up to 8 files, 20 MB each/);
+    assert.equal(await run(`document.getElementById('source').title`), `${process.platform === 'darwin' ? '⌘↩' : 'Ctrl+Enter'} runs immediately`);
     await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-attach').click()`);
     await waitFor(`document.querySelectorAll('#chat-attachments button').length === 3`);
     await waitFor(`document.querySelector('#chat-attachments img').naturalWidth === 40`);
