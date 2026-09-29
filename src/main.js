@@ -8,6 +8,7 @@ ipcMain.handle('clipboard-image', async () => {
 });
 const { prepareContext } = require('./chatCompaction');
 const { validateMessages, openAIMessages, ollamaMessages } = require('./chatProtocol');
+const { createSecureStore } = require('./secureStore');
 require('./chatStore')({ ipcMain, app, safeStorage, dialog, clipboard });
 
 const LM_STUDIO_BASE_URL = 'http://127.0.0.1:1234';
@@ -246,37 +247,20 @@ ipcMain.handle('set-theme', (_event, theme) => {
 // Source-text history, custom prompts and the prompt history can all contain
 // sensitive data, so they live in one file encrypted with a key held in the
 // OS keychain (Electron safeStorage) instead of plaintext localStorage.
-// If encryption is unavailable (rare), the data stays in-memory for the
-// session and is never written to disk.
-
-function secureStoreFile() {
-  return path.join(app.getPath('userData'), 'history.enc');
-}
+// Without protected storage, or when the existing file is unreadable, the data
+// stays in memory for the session and the existing file is never overwritten.
+const historyStore = createSecureStore({ file: () => path.join(app.getPath('userData'), 'history.enc'), safeStorage, label: 'Input history' });
 
 ipcMain.handle('history-load', () => {
-  try {
-    if (!safeStorage.isEncryptionAvailable()) return { store: null, persistent: false };
-    const parsed = JSON.parse(safeStorage.decryptString(fs.readFileSync(secureStoreFile())));
-    // Legacy format: a bare array of source-history entries
-    const store = Array.isArray(parsed) ? { sourceHistory: parsed } : parsed;
-    return { store: store && typeof store === 'object' ? store : null, persistent: true };
-  } catch {
-    // Missing file (first run) or undecryptable content
-    return { store: null, persistent: safeStorage.isEncryptionAvailable() };
-  }
+  const { data, persistent, error } = historyStore.load();
+  // Legacy format: a bare array of source-history entries
+  const store = Array.isArray(data) ? { sourceHistory: data } : data;
+  return { store: store && typeof store === 'object' ? store : null, persistent, error };
 });
 
 ipcMain.handle('history-save', (_event, store) => {
-  try {
-    if (!safeStorage.isEncryptionAvailable()) return { ok: false };
-    if (!store || typeof store !== 'object' || Array.isArray(store)) return { ok: false };
-    fs.writeFileSync(secureStoreFile(), safeStorage.encryptString(JSON.stringify(store)), {
-      mode: 0o600,
-    });
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+  if (!store || typeof store !== 'object' || Array.isArray(store)) return { ok: false, error: 'Invalid history data' };
+  return historyStore.save(store);
 });
 
 ipcMain.handle('choose-backend', (_event, backend) => {

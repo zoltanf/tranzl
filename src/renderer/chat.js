@@ -1,7 +1,7 @@
 (() => {
   const el = id => document.getElementById(`chat-${id}`);
   let modelInfo = {}, infoSeq = 0, attaching = false;
-  let sessions = [], activeId = null, running = null, ready = false, saveTimer;
+  let sessions = [], activeId = null, running = null, ready = false, persistent = false, saveTimer;
   const current = () => sessions.find(s => s.id === activeId);
   const notice = text => { el('notice').textContent = text || ''; };
   // Errors stay in the chat view and also surface in the app-wide status bar.
@@ -11,7 +11,7 @@
   function persist(immediate = false) {
     clearTimeout(saveTimer);
     const save = async () => {
-      if (!ready) return;
+      if (!ready || !persistent) return;
       try {
         const result = await window.tranzl.chatSave({ sessions, activeId });
         if (!result.ok) fail(result.error || 'Could not save chats.');
@@ -427,7 +427,7 @@
   window.addEventListener('beforeunload', () => persist(true));
   controls();
   window.tranzl.chatLoad().then(data => {
-    if (data.error) { fail(data.error); return; }
+    persistent = data.persistent;
     sessions = Array.isArray(data.sessions) ? data.sessions : [];
     for (const session of sessions) for (const message of session.messages) {
       if (message.status && !['Stopped', 'Failed', 'Interrupted'].includes(message.status)) message.status = 'Interrupted';
@@ -437,9 +437,9 @@
     ready = true;
     refreshModelInfo();
     if (!sessions.length) newChat(); else render();
-    if (!data.persistent) {
+    if (!persistent) {
       el('storage').textContent = 'Temporary chats · not saved to disk';
-      notice('Local encryption is unavailable. Chats will only last until you close the app.');
+      notice(data.error || 'Chats will only last until you close the app.');
     }
   }).catch(err => fail(`Could not load chats: ${err.message}`));
 })();

@@ -229,8 +229,27 @@ app.whenReady().then(async () => {
     assert.equal(lastRequest.messages.filter(m => m.role === 'user').length, 2);
     assert.ok(saved.sessions.find(s => s.messages.some(m => m.capped === null || m.capped == null)));
 
+    // Unreadable or unavailable encrypted storage: Chat and history remain usable in
+    // memory, are visibly temporary, and never try to save over the preserved files.
+    let saves = [];
+    const unreadable = 'Saved chats could not be read, so changes are kept only until you close the app.';
+    const replace = (name, handler) => { ipcMain.removeHandler(name); ipcMain.handle(name, handler); };
+    replace('chat-load', () => ({ sessions: [], persistent: false, error: unreadable }));
+    replace('history-load', () => ({ store: null, persistent: false, error: 'Saved input history could not be read.' }));
+    replace('chat-save', () => { saves.push('chat'); return { ok: false }; });
+    replace('history-save', () => { saves.push('history'); return { ok: false }; });
+    win.webContents.reload(); await new Promise(resolve => win.webContents.once('did-finish-load', resolve));
+    await waitFor(`!document.getElementById('chat-input').disabled`);
+    saves = []; // the previous page's beforeunload save is legitimate
+    assert.equal(await run(`document.getElementById('chat-storage').textContent`), 'Temporary chats · not saved to disk');
+    assert.equal(await run(`document.getElementById('chat-notice').textContent`), unreadable);
+    assert.equal(await run(`document.getElementById('history-storage').hidden`), false);
+    await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-input').value='Temporary question'; document.getElementById('chat-input').dispatchEvent(new Event('input')); document.getElementById('chat-send').click()`);
+    await waitFor(`document.querySelectorAll('.chat-message').length === 2 && document.getElementById('chat-stop').classList.contains('hidden')`);
+    assert.deepEqual(saves, []);
+
     assert.deepEqual(errors, []);
-    console.log('PASS: chat UI, attachments, Markdown sanitization, multi-turn context, drafts, reload, delete and clear. Screenshot: /tmp/tranzl-chat-ui.png');
+    console.log('PASS: chat UI, attachments, Markdown sanitization, multi-turn context, drafts, reload, delete, clear and temporary storage. Screenshot: /tmp/tranzl-chat-ui.png');
     app.exit(0);
   } catch (err) { console.error(err); console.error(errors); console.error(await run(`document.getElementById('chat-view').innerHTML`)); app.exit(1); }
 }).finally(() => {});

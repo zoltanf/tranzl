@@ -72,7 +72,7 @@ Embedded inference downloads a pinned, checksum-verified runtime archive (~11 MB
 
 Attachment contents, resized images and audio bytes are encrypted with the session store. Original files are never changed. Markdown includes tables, lists, links, blockquotes and fenced code; model-generated HTML is sanitized and remote images are blocked.
 
-Chats are saved separately in `~/Library/Application Support/tranzl/chats.enc`. When OS encryption is unavailable, the UI reports that chats are temporary. Deleting sessions removes their saved contents from this store.
+Chats are saved separately in `~/Library/Application Support/tranzl/chats.enc`; input history and custom prompts are in `history.enc`. Both are written atomically, and a failed save keeps the previous copy. When protected OS storage is unavailable (including Linux without a desktop keyring), Chat and input history are visibly marked temporary and nothing is written. If an existing file cannot be decrypted, for example because the keyring is locked, Tranzl leaves it untouched, works in memory for that session, and reads it again after a restart. Deleting sessions removes their saved contents from this store.
 
 Run the backend and Electron UI checks:
 

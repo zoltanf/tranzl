@@ -384,8 +384,13 @@ const HISTORY_MAX = 200;
 // renderer works against this in-memory copy loaded at startup
 let secureStore = { sourceHistory: [], promptHistory: [], customPrompt: '' };
 
+let secureStorePersistent = false;
+
 function persistSecureStore() {
-  window.tranzl.saveHistory(secureStore);
+  if (!secureStorePersistent) return;
+  window.tranzl.saveHistory(secureStore).then((result) => {
+    if (!result?.ok) setStatus(result?.error || 'Could not save input history.', 'error');
+  });
 }
 
 function getSourceHistory() {
@@ -404,7 +409,16 @@ function readLegacyKey(key) {
 }
 
 async function initSecureStore() {
-  const { store } = await window.tranzl.loadHistory();
+  const { store, persistent, error } = await window.tranzl.loadHistory();
+  secureStorePersistent = persistent;
+  // Legacy plaintext data stays in localStorage until it can be saved encrypted.
+  if (!persistent) {
+    const message = error || 'Input history will only last until you close the app.';
+    const label = document.getElementById('history-storage');
+    label.hidden = false; label.title = message;
+    setStatus(message, 'error');
+    return;
+  }
   if (store) {
     secureStore = {
       sourceHistory: Array.isArray(store.sourceHistory) ? store.sourceHistory : [],

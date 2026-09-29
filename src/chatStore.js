@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { Worker } = require('worker_threads');
 const { EXTENSIONS } = require('./attachments');
+const { createSecureStore } = require('./secureStore');
 function parseFile(filename) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, 'attachmentWorker.js'), { workerData: filename, resourceLimits: { maxOldGenerationSizeMb: 384 } });
@@ -13,25 +14,14 @@ function parseFile(filename) {
 }
 
 module.exports = function registerChatStore({ ipcMain, app, safeStorage, dialog }) {
-  const file = () => path.join(app.getPath('userData'), 'chats.enc');
+  const store = createSecureStore({ file: () => path.join(app.getPath('userData'), 'chats.enc'), safeStorage, label: 'Chats' });
   ipcMain.handle('chat-load', () => {
-    if (!safeStorage.isEncryptionAvailable()) return { sessions: [], persistent: false };
-    try {
-      const data = JSON.parse(safeStorage.decryptString(fs.readFileSync(file())));
-      return { ...data, persistent: true };
-    } catch (err) {
-      return { sessions: [], persistent: true, error: err.code === 'ENOENT' ? null : 'Saved chats could not be read. Your existing file has been preserved.' };
-    }
+    const { data, persistent, error } = store.load();
+    return { sessions: [], ...(data && typeof data === 'object' ? data : {}), persistent, error };
   });
   ipcMain.handle('chat-save', (_event, data) => {
-    try {
-      if (!safeStorage.isEncryptionAvailable()) throw new Error('Local encryption is unavailable. Chats will only last until you close the app.');
-      if (!data || !Array.isArray(data.sessions)) throw new Error('Invalid chat data');
-      const temp = file() + '.tmp';
-      fs.writeFileSync(temp, safeStorage.encryptString(JSON.stringify(data)), { mode: 0o600 });
-      fs.renameSync(temp, file());
-      return { ok: true };
-    } catch (err) { return { ok: false, error: err.message }; }
+    if (!data || !Array.isArray(data.sessions)) return { ok: false, error: 'Invalid chat data' };
+    return store.save(data);
   });
   ipcMain.handle('chat-attach', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
