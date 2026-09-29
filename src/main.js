@@ -791,11 +791,13 @@ app.whenReady().then(() => {
   });
 });
 
+let shuttingDown = false;
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  // A signal-initiated quit (e.g. SIGTERM) closes the windows but ends here instead
+  // of in will-quit; finish our deferred shutdown rather than lingering windowless.
+  if (process.platform !== 'darwin' || shuttingDown) app.quit();
 });
 
-let shuttingDown = false;
 app.on('before-quit', event => {
   if (shuttingDown) return;
   event.preventDefault(); shuttingDown = true;
