@@ -2,6 +2,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
+// Hash results are remembered per process only for large files (the model and projector),
+// where rehashing costs seconds. File timestamps can be coarse (milliseconds on Linux), so
+// small files such as runtime libraries are always rehashed to catch same-size overwrites.
+const MEMO_MIN_BYTES = 64 * 1024 * 1024;
 const verified = new Map();
 async function verify(file, asset, signal) {
   signal?.throwIfAborted();
@@ -9,12 +13,14 @@ async function verify(file, asset, signal) {
   try { stat = await fs.promises.stat(file); } catch (error) { if (error.code === 'ENOENT') return false; throw error; }
   if (!stat.isFile() || (asset.bytes != null && stat.size !== asset.bytes)) return false;
   const signature = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}:${asset.sha256}`;
-  if (verified.get(file) === signature) return true;
+  const memo = stat.size >= MEMO_MIN_BYTES;
+  if (memo && verified.get(file) === signature) return true;
   const hash = crypto.createHash('sha256');
   for await (const chunk of fs.createReadStream(file)) { signal?.throwIfAborted(); hash.update(chunk); }
   signal?.throwIfAborted();
   if (hash.digest('hex') !== asset.sha256) return false;
-  verified.set(file, signature); return true;
+  if (memo) verified.set(file, signature);
+  return true;
 }
 
 async function downloadVerified(asset, destination, { signal, onProgress = () => {}, fetchImpl = fetch } = {}) {

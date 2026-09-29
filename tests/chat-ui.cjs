@@ -185,13 +185,20 @@ app.whenReady().then(async () => {
     await run(`document.getElementById('chat-messages').scrollTop = 1e9`);
     await run(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
     const point = await run(`(() => { const r = document.querySelector('details[data-message] summary').getBoundingClientRect(); return { x: Math.round(r.x + 20), y: Math.round(r.y + r.height / 2) }; })()`);
+    // Printed only if this step fails, to diagnose environments where the click is lost.
+    await run(`window.__clickLog = []; for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'toggle', 'scroll']) document.addEventListener(t, e => window.__clickLog.push([t, e.target.tagName || 'document', document.getElementById('chat-messages').scrollTop]), true)`);
     win.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...point });
     // Visible answer text grows below the summary; following the bottom would move it.
     win.webContents.send('chat-event', { ...thinkingEvent, delta: 'Second thought. ' });
     win.webContents.send('chat-event', { requestId: lastRequest.requestId, type: 'chunk', delta: '\n\nA longer streamed paragraph. '.repeat(6) });
     await waitFor(`document.querySelector('.chat-thought').textContent.includes('Second thought') && document.querySelector('.chat-message:last-child').textContent.includes('longer streamed paragraph')`);
     win.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...point });
-    await waitFor(`document.querySelector('details[data-message]').open`);
+    try { await waitFor(`document.querySelector('details[data-message]').open`); }
+    catch (error) {
+      console.error('click diagnostics:', JSON.stringify({ point, focused: win.isFocused(), content: win.getContentBounds(), events: await run('window.__clickLog'),
+        hit: await run(`document.elementFromPoint(${point.x}, ${point.y})?.tagName`) }));
+      throw error;
+    }
     win.webContents.send('chat-event', { ...thinkingEvent, delta: 'Third thought.' });
     await waitFor(`document.querySelector('.chat-thought').textContent.includes('Third thought')`);
     assert.equal(await run(`document.querySelector('details[data-message]').open`), true);
