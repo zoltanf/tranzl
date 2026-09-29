@@ -2,6 +2,8 @@
 
 Prepared: 2026-09-24. Updated: 2026-09-29. Status: Stages A and B passed on the existing Mac target; Stage C is next. Other platforms remain unvalidated.
 
+Continuation context: [agent handoff](agent-handoff.md).
+
 ## Execution order and tracking
 
 Read [requirements and acceptance criteria](multiplatform-requirements.md) first. The user's required order is: **evaluate one inference runtime, adopt it if the gates pass, then implement multiplatform support**. [Runtime evaluation evidence](runtime-evaluation.md) records the comparison and decision. This ordering supersedes the earlier proposal to begin by packaging the existing dual-runtime architecture.
