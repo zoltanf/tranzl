@@ -121,6 +121,7 @@ Native per-target CI with locked installs and artifact inventories; Mac app/ZIP,
 
 ## Catches and gotchas
 
+- **Never launch the app from a commit before C4 (`157f74c`).** Those versions call `app.setPath('userData', …/tranzl)` unconditionally, so `--user-data-dir` and `TRANZL_TEST_PROFILE` are ignored and the app opens the user's real profile. This happened once on 2026-09-29: a 6-second launch of `b43d77b` rewrote the real `settings.json` and `chats.enc` on quit. For older baselines, use only the evaluation harness, which sets its own temporary profile.
 - `/slots` on pinned b11158 supplies measured text occupancy. It is often input-plus-output minus one, reflecting evaluated tokens. Do not replace it with request token totals. Missing/invalid telemetry is estimated/unknown. Media-capable sessions retain estimated context accounting, including text after media until restart.
 - Canceling the HTTP fetch does not prove inference stopped. The adapter waits up to 1.5 s for the slot to become idle, otherwise terminates the child. A socket failure may arrive before the OS exit event; await process exit before reuse/restart.
 - Cancellation settles the caller promptly while queue-owned cleanup finishes. Shutdown must drain the queue, including acquisition, before quitting. Lifecycle tests cover forced SIGKILL and acquisition cancellation.
