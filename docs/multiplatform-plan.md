@@ -1,6 +1,6 @@
 # Windows and Linux implementation plan
 
-Prepared: 2026-09-24. Updated: 2026-09-29. Status: Stages A and B passed on the existing Mac target; Stage C is next. Other platforms remain unvalidated.
+Prepared: 2026-09-24. Updated: 2026-09-29. Status: Stages A–C passed on the existing Mac target; Stage D is next. Other platforms remain unvalidated.
 
 Continuation context: [agent handoff](agent-handoff.md).
 
@@ -12,8 +12,8 @@ Read [requirements and acceptance criteria](multiplatform-requirements.md) first
 | --- | --- | --- |
 | A — Baseline and runtime experiment | Isolated A/B harness; functional, lifecycle, context, performance, and packaged Mac evidence; written adoption decision | Passed on Mac ARM64; see runtime evaluation evidence |
 | B — Consolidate embedded inference | One managed server adapter; lazy media setup; pinned resumable model acquisition; remove worker and `node-llama-cpp` after parity; Mac regression gates pass | Passed on Mac ARM64; shared server, verified assets, dependency removal and packaged checks complete |
-| C — Portable foundations | Runtime manifest, Node build scripts, shared secure storage, capability reporting, portable fixtures and converter decision | In progress: C1 runtime manifest, C2 Node packaging, C3 secure storage, C4 test profile, C5 attachments/UI portability and C6 portable fixtures done; see agent handoff |
-| D — Native target builds | Windows x64, Linux x64, Linux ARM64 packaged CPU generation and attachment smoke checks on native targets | Pending C |
+| C — Portable foundations | Runtime manifest, Node build scripts, shared secure storage, capability reporting, portable fixtures and converter decision | Passed on Mac ARM64; see agent handoff and runtime evidence |
+| D — Native target builds | Windows x64, Linux x64, Linux ARM64 packaged CPU generation and attachment smoke checks on native targets | Next; needs native machines/runners |
 | E — Recovery and acceleration | Bounded CPU recovery, actionable errors, measured hardware support and resource limits | Pending D |
 | F — Installers and releases | Native CI, signed artifacts where configured, clean-machine install/upgrade checks and documented support matrix | Pending E |
 

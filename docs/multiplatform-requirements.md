@@ -1,6 +1,6 @@
 # Unified inference and multiplatform requirements
 
-Updated: 2026-09-29. Status: Stages A and B passed on macOS ARM64; portability and native target validation remain pending. See [agent handoff](agent-handoff.md) for the continuation checkpoint.
+Updated: 2026-09-29. Status: Stages A–C passed on macOS ARM64; native target validation (Stage D onward) remains pending. See [agent handoff](agent-handoff.md) for the continuation checkpoint.
 
 ## Objective and precedence
 

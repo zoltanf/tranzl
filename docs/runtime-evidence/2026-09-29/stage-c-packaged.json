@@ -1,0 +1,1358 @@
+{
+  "date": "2026-09-29T16:54:44.245Z",
+  "backend": "embedded",
+  "platform": "darwin",
+  "arch": "arm64",
+  "os": "25.6.0",
+  "cpu": "Apple M5 Pro",
+  "ramBytes": 68719476736,
+  "electron": "44.4.5",
+  "node": "24.21.0",
+  "contextSize": 8192,
+  "cases": [
+    {
+      "name": "translation",
+      "passed": true,
+      "seconds": 0.2120352499999999,
+      "translation": "Das blaue Fahrrad steht neben dem Gartentor.",
+      "stats": {
+        "inputTokens": 42,
+        "outputTokens": 11,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 0,
+        "contextSize": 8192,
+        "contextTokens": 52,
+        "contextEstimated": false,
+        "tps": 69.36111477183661,
+        "firstTokenSeconds": 0.06683566599999995,
+        "elapsedSeconds": 0.21181504099999984
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 42,
+        "prompt_ms": 64.463,
+        "prompt_per_token_ms": 1.5348333333333333,
+        "prompt_per_second": 651.5365403409709,
+        "predicted_n": 11,
+        "predicted_ms": 144.173,
+        "predicted_per_token_ms": 14.417300000000001,
+        "predicted_per_second": 69.36111477183661
+      },
+      "thought": "",
+      "output": "Das blaue Fahrrad steht neben dem Gartentor.",
+      "liveStats": [
+        {
+          "inputTokens": 42,
+          "outputTokens": 11,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 0,
+          "contextSize": 8192,
+          "contextTokens": 52,
+          "contextEstimated": false,
+          "tps": 69.36111477183661,
+          "firstTokenSeconds": 0.06683566599999995,
+          "elapsedSeconds": 0.21181504099999984
+        }
+      ]
+    },
+    {
+      "name": "editing",
+      "passed": true,
+      "seconds": 0.13908458299999985,
+      "translation": "She has three books.",
+      "stats": {
+        "inputTokens": 39,
+        "outputTokens": 6,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 44,
+        "contextEstimated": false,
+        "tps": 68.45001779700462,
+        "firstTokenSeconds": 0.06560820799999964,
+        "elapsedSeconds": 0.13901158299999952
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 20,
+        "prompt_ms": 63.634,
+        "prompt_per_token_ms": 3.1817,
+        "prompt_per_second": 314.29738818870413,
+        "predicted_n": 6,
+        "predicted_ms": 73.046,
+        "predicted_per_token_ms": 14.609200000000001,
+        "predicted_per_second": 68.45001779700462
+      },
+      "thought": "",
+      "output": "She has three books.",
+      "liveStats": [
+        {
+          "inputTokens": 39,
+          "outputTokens": 6,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 44,
+          "contextEstimated": false,
+          "tps": 68.45001779700462,
+          "firstTokenSeconds": 0.06560820799999964,
+          "elapsedSeconds": 0.13901158299999952
+        }
+      ]
+    },
+    {
+      "name": "warm-1",
+      "passed": true,
+      "seconds": 1.5514339160000008,
+      "translation": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which gives leaves their green color, masks other pigments. As temperatures drop and daylight shortens, the tree stops producing chlorophyll, causing it to break down. This unmasks underlying pigments like carotenoids (yellow and orange) that were present all along. Additionally, other pigments called anthocyanins are produced in some trees, creating vibrant reds and purples. This process is nature's way of preparing the leaves for dormancy.",
+      "stats": {
+        "inputTokens": 39,
+        "outputTokens": 105,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 143,
+        "contextEstimated": false,
+        "tps": 70.00458395400699,
+        "firstTokenSeconds": 0.06528012499999931,
+        "elapsedSeconds": 1.5513725000000005
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 20,
+        "prompt_ms": 63.651,
+        "prompt_per_token_ms": 3.18255,
+        "prompt_per_second": 314.2134451933198,
+        "predicted_n": 105,
+        "predicted_ms": 1485.617,
+        "predicted_per_token_ms": 14.284778846153845,
+        "predicted_per_second": 70.00458395400699
+      },
+      "thought": "",
+      "output": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which gives leaves their green color, masks other pigments. As temperatures drop and daylight shortens, the tree stops producing chlorophyll, causing it to break down. This unmasks underlying pigments like carotenoids (yellow and orange) that were present all along. Additionally, other pigments called anthocyanins are produced in some trees, creating vibrant reds and purples. This process is nature's way of preparing the leaves for dormancy.",
+      "liveStats": [
+        {
+          "inputTokens": 39,
+          "outputTokens": 14,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 53,
+          "contextEstimated": false,
+          "tps": 69.51983186896045,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 0.2527842920000003
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 31,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 70,
+          "contextEstimated": false,
+          "tps": 70.11508222161976,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 0.5038819590000003
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 49,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 88,
+          "contextEstimated": false,
+          "tps": 69.96421621857986,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 0.754420709
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 66,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 105,
+          "contextEstimated": false,
+          "tps": 69.96522190277418,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 1.0039602920000006
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 84,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 123,
+          "contextEstimated": false,
+          "tps": 69.92447314436876,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 1.2542122090000003
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 101,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 140,
+          "contextEstimated": false,
+          "tps": 69.97709649631676,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 1.5049709169999996
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 105,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 143,
+          "contextEstimated": false,
+          "tps": 70.00458395400699,
+          "firstTokenSeconds": 0.06528012499999931,
+          "elapsedSeconds": 1.5513725000000005
+        }
+      ]
+    },
+    {
+      "name": "warm-2",
+      "passed": true,
+      "seconds": 1.5424824160000008,
+      "translation": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which is green, masks other pigments. As days shorten and temperatures cool, the tree stops producing chlorophyll, causing it to fade. This unmasks underlying pigments like yellow (carotenoids) and orange (carotenoids). Some trees produce new pigments, such as red and purple (anthocyanins), in response to bright light and cool nights. This vibrant display is a natural process signaling the tree's preparation for dormancy.",
+      "stats": {
+        "inputTokens": 39,
+        "outputTokens": 107,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 38,
+        "contextSize": 8192,
+        "contextTokens": 145,
+        "contextEstimated": false,
+        "tps": 69.50942738002574,
+        "firstTokenSeconds": 0.016841832999998585,
+        "elapsedSeconds": 1.5424249999999993
+      },
+      "timings": {
+        "cache_n": 38,
+        "prompt_n": 1,
+        "prompt_ms": 14.858,
+        "prompt_per_token_ms": 14.858,
+        "prompt_per_second": 67.3038093956118,
+        "predicted_n": 107,
+        "predicted_ms": 1524.973,
+        "predicted_per_token_ms": 14.386537735849057,
+        "predicted_per_second": 69.50942738002574
+      },
+      "thought": "",
+      "output": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which is green, masks other pigments. As days shorten and temperatures cool, the tree stops producing chlorophyll, causing it to fade. This unmasks underlying pigments like yellow (carotenoids) and orange (carotenoids). Some trees produce new pigments, such as red and purple (anthocyanins), in response to bright light and cool nights. This vibrant display is a natural process signaling the tree's preparation for dormancy.",
+      "liveStats": [
+        {
+          "inputTokens": 39,
+          "outputTokens": 17,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 56,
+          "contextEstimated": false,
+          "tps": 68.29318263304366,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 0.25308270799999993
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 34,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 73,
+          "contextEstimated": false,
+          "tps": 69.0490687791497,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 0.5046007909999989
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 52,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 91,
+          "contextEstimated": false,
+          "tps": 69.38596145133663,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 0.754832375
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 69,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 108,
+          "contextEstimated": false,
+          "tps": 69.55290777182145,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 1.005473082999999
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 87,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 126,
+          "contextEstimated": false,
+          "tps": 69.62502874056419,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 1.256197
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 104,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 143,
+          "contextEstimated": false,
+          "tps": 69.54173347961854,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 1.50682525
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 107,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 145,
+          "contextEstimated": false,
+          "tps": 69.50942738002574,
+          "firstTokenSeconds": 0.016841832999998585,
+          "elapsedSeconds": 1.5424249999999993
+        }
+      ]
+    },
+    {
+      "name": "warm-3",
+      "passed": true,
+      "seconds": 1.3857047920000005,
+      "translation": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which is green, masks other pigments. As temperatures drop and daylight shortens, trees stop producing chlorophyll, causing the green to fade. This reveals underlying pigments like carotenoids (yellow/orange) and anthocyanins (red), which were present in the leaves all along. The change is a natural process as the tree prepares for winter dormancy, conserving energy before shedding its leaves.",
+      "stats": {
+        "inputTokens": 39,
+        "outputTokens": 96,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 38,
+        "contextSize": 8192,
+        "contextTokens": 134,
+        "contextEstimated": false,
+        "tps": 69.46800669232839,
+        "firstTokenSeconds": 0.017696249999999053,
+        "elapsedSeconds": 1.3856412920000003
+      },
+      "timings": {
+        "cache_n": 38,
+        "prompt_n": 1,
+        "prompt_ms": 15.014,
+        "prompt_per_token_ms": 15.014,
+        "prompt_per_second": 66.60450246436659,
+        "predicted_n": 96,
+        "predicted_ms": 1367.536,
+        "predicted_per_token_ms": 14.395115789473685,
+        "predicted_per_second": 69.46800669232839
+      },
+      "thought": "",
+      "output": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which is green, masks other pigments. As temperatures drop and daylight shortens, trees stop producing chlorophyll, causing the green to fade. This reveals underlying pigments like carotenoids (yellow/orange) and anthocyanins (red), which were present in the leaves all along. The change is a natural process as the tree prepares for winter dormancy, conserving energy before shedding its leaves.",
+      "liveStats": [
+        {
+          "inputTokens": 39,
+          "outputTokens": 17,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 56,
+          "contextEstimated": false,
+          "tps": 69.5114215954609,
+          "firstTokenSeconds": 0.017696249999999053,
+          "elapsedSeconds": 0.25411645900000074
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 34,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 73,
+          "contextEstimated": false,
+          "tps": 69.09359669858232,
+          "firstTokenSeconds": 0.017696249999999053,
+          "elapsedSeconds": 0.5049370420000013
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 52,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 91,
+          "contextEstimated": false,
+          "tps": 69.05656545140653,
+          "firstTokenSeconds": 0.017696249999999053,
+          "elapsedSeconds": 0.7564942920000012
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 69,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 108,
+          "contextEstimated": false,
+          "tps": 69.13822255797189,
+          "firstTokenSeconds": 0.017696249999999053,
+          "elapsedSeconds": 1.0062871250000007
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 86,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 125,
+          "contextEstimated": false,
+          "tps": 69.34869338902985,
+          "firstTokenSeconds": 0.017696249999999053,
+          "elapsedSeconds": 1.2562714590000015
+        },
+        {
+          "inputTokens": 39,
+          "outputTokens": 96,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 38,
+          "contextSize": 8192,
+          "contextTokens": 134,
+          "contextEstimated": false,
+          "tps": 69.46800669232839,
+          "firstTokenSeconds": 0.017696249999999053,
+          "elapsedSeconds": 1.3856412920000003
+        }
+      ]
+    },
+    {
+      "name": "reasoning-on",
+      "passed": true,
+      "seconds": 6.195688375,
+      "translation": "66",
+      "stats": {
+        "inputTokens": 77,
+        "outputTokens": 426,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 4,
+        "contextSize": 8192,
+        "contextTokens": 502,
+        "contextEstimated": false,
+        "tps": 69.49298734001283,
+        "firstTokenSeconds": 0.1179299170000013,
+        "elapsedSeconds": 6.195571583
+      },
+      "timings": {
+        "cache_n": 4,
+        "prompt_n": 73,
+        "prompt_ms": 69.841,
+        "prompt_per_token_ms": 0.9567260273972602,
+        "prompt_per_second": 1045.2313111209749,
+        "predicted_n": 426,
+        "predicted_ms": 6115.725,
+        "predicted_per_token_ms": 14.38994117647059,
+        "predicted_per_second": 69.49298734001283
+      },
+      "thought": "Let $A$ be the number of adult tickets sold and $C$ be the number of child tickets sold.\nThe total number of tickets sold is 120:\n$A + C = 120$ (1)\n\nThe cost of an adult ticket is 15 euros, and the cost of a child ticket is 9 euros.\nThe total revenue is 1476 euros:\n$15A + 9C = 1476$ (2)\n\nWe need to find the value of $A$.\n\nFrom (1), we can express $C$ in terms of $A$:\n$C = 120 - A$\n\nSubstitute this into (2):\n$15A + 9(120 - A) = 1476$\n$15A + 1080 - 9A = 1476$\n$6A + 1080 = 1476$\n$6A = 1476 - 1080$\n$6A = 396$\n$A = 396 / 6$\n$A = 66$\n\nCheck the result:\nIf $A = 66$, then $C = 120 - 66 = 54$.\nTotal revenue = $15(66) + 9(54)$\n$15 \\times 66 = 15 \\times (60 + 6) = 900 + 90 = 990$\n$9 \\times 54 = 9 \\times (50 + 4) = 450 + 36 = 486$\nTotal revenue = $990 + 486 = 1476$.\nThe calculation is correct.\n\nThe number of adult tickets sold is 66.",
+      "output": "66",
+      "liveStats": [
+        {
+          "inputTokens": 77,
+          "outputTokens": 13,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 90,
+          "contextEstimated": false,
+          "tps": 69.24328628636715,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 0.2542517920000009
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 31,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 108,
+          "contextEstimated": false,
+          "tps": 69.9111662114673,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 0.5042789170000015
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 48,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 125,
+          "contextEstimated": false,
+          "tps": 69.78045879909314,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 0.7558454579999998
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 66,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 143,
+          "contextEstimated": false,
+          "tps": 69.85296488222791,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 1.006966958000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 83,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 160,
+          "contextEstimated": false,
+          "tps": 69.9436100967866,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 1.2579962500000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 101,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 178,
+          "contextEstimated": false,
+          "tps": 69.90748443509858,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 1.5093042500000011
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 119,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 196,
+          "contextEstimated": false,
+          "tps": 69.96419374864,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 1.7596027919999997
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 136,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 213,
+          "contextEstimated": false,
+          "tps": 69.9236951202584,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 2.009578458
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 153,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 230,
+          "contextEstimated": false,
+          "tps": 69.87731474351577,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 2.259529958000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 170,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 247,
+          "contextEstimated": false,
+          "tps": 69.69184246674483,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 2.509679875
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 187,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 264,
+          "contextEstimated": false,
+          "tps": 69.55842739614758,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 2.759191917
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 205,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 282,
+          "contextEstimated": false,
+          "tps": 69.5292494896928,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 3.009461542000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 222,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 299,
+          "contextEstimated": false,
+          "tps": 69.51679223727056,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 3.258975083000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 240,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 317,
+          "contextEstimated": false,
+          "tps": 69.54111014380753,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 3.509835083
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 257,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 334,
+          "contextEstimated": false,
+          "tps": 69.41832594995319,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 3.760627417
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 274,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 351,
+          "contextEstimated": false,
+          "tps": 69.3407120656141,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 4.010116417000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 291,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 368,
+          "contextEstimated": false,
+          "tps": 69.34713261563037,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 4.260655292000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 308,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 385,
+          "contextEstimated": false,
+          "tps": 69.3617118380108,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 4.511296042
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 326,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 403,
+          "contextEstimated": false,
+          "tps": 69.3868592817414,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 4.761461917
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 343,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 420,
+          "contextEstimated": false,
+          "tps": 69.4083788090131,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 5.0114174579999995
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 361,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 438,
+          "contextEstimated": false,
+          "tps": 69.43713104291098,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 5.260954042000002
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 378,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 455,
+          "contextEstimated": false,
+          "tps": 69.4464144466226,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 5.5127201249999995
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 396,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 473,
+          "contextEstimated": false,
+          "tps": 69.47038591766686,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 5.763476167
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 413,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 490,
+          "contextEstimated": false,
+          "tps": 69.48373751674904,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 6.013494083000001
+        },
+        {
+          "inputTokens": 77,
+          "outputTokens": 426,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 502,
+          "contextEstimated": false,
+          "tps": 69.49298734001283,
+          "firstTokenSeconds": 0.1179299170000013,
+          "elapsedSeconds": 6.195571583
+        }
+      ],
+      "thoughtPresent": true
+    },
+    {
+      "name": "reasoning-off",
+      "passed": true,
+      "seconds": 0.11428129199999967,
+      "translation": "323",
+      "stats": {
+        "inputTokens": 38,
+        "outputTokens": 4,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 41,
+        "contextEstimated": false,
+        "tps": 66.40547181087722,
+        "firstTokenSeconds": 0.0684965830000001,
+        "elapsedSeconds": 0.11418841700000121
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 19,
+        "prompt_ms": 64.671,
+        "prompt_per_token_ms": 3.4037368421052636,
+        "prompt_per_second": 293.7947457129161,
+        "predicted_n": 4,
+        "predicted_ms": 45.177,
+        "predicted_per_token_ms": 15.059,
+        "predicted_per_second": 66.40547181087722
+      },
+      "thought": "",
+      "output": "323",
+      "liveStats": [
+        {
+          "inputTokens": 38,
+          "outputTokens": 4,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 41,
+          "contextEstimated": false,
+          "tps": 66.40547181087722,
+          "firstTokenSeconds": 0.0684965830000001,
+          "elapsedSeconds": 0.11418841700000121
+        }
+      ]
+    },
+    {
+      "name": "conversation-recall",
+      "passed": true,
+      "seconds": 0.169994708000002,
+      "translation": "ORCHID-729",
+      "stats": {
+        "inputTokens": 69,
+        "outputTokens": 8,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 76,
+        "contextEstimated": false,
+        "tps": 68.81838827334664,
+        "firstTokenSeconds": 0.0676800000000003,
+        "elapsedSeconds": 0.16990137499999763
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 50,
+        "prompt_ms": 64.761,
+        "prompt_per_token_ms": 1.2952199999999998,
+        "prompt_per_second": 772.0696097960192,
+        "predicted_n": 8,
+        "predicted_ms": 101.717,
+        "predicted_per_token_ms": 14.531,
+        "predicted_per_second": 68.81838827334664
+      },
+      "thought": "",
+      "output": "ORCHID-729",
+      "liveStats": [
+        {
+          "inputTokens": 69,
+          "outputTokens": 8,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 76,
+          "contextEstimated": false,
+          "tps": 68.81838827334664,
+          "firstTokenSeconds": 0.0676800000000003,
+          "elapsedSeconds": 0.16990137499999763
+        }
+      ]
+    },
+    {
+      "name": "session-isolation",
+      "passed": true,
+      "seconds": 0.08296145800000158,
+      "translation": "UNKNOWN",
+      "stats": {
+        "inputTokens": 42,
+        "outputTokens": 2,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 20,
+        "contextSize": 8192,
+        "contextTokens": 43,
+        "contextEstimated": false,
+        "tps": 61.297045482407746,
+        "firstTokenSeconds": 0.06604329199999846,
+        "elapsedSeconds": 0.08281925000000047
+      },
+      "timings": {
+        "cache_n": 20,
+        "prompt_n": 22,
+        "prompt_ms": 64.197,
+        "prompt_per_token_ms": 2.918045454545455,
+        "prompt_per_second": 342.6951415175164,
+        "predicted_n": 2,
+        "predicted_ms": 16.314,
+        "predicted_per_token_ms": 16.314,
+        "predicted_per_second": 61.297045482407746
+      },
+      "thought": "",
+      "output": "UNKNOWN",
+      "liveStats": [
+        {
+          "inputTokens": 42,
+          "outputTokens": 2,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 20,
+          "contextSize": 8192,
+          "contextTokens": 43,
+          "contextEstimated": false,
+          "tps": 61.297045482407746,
+          "firstTokenSeconds": 0.06604329199999846,
+          "elapsedSeconds": 0.08281925000000047
+        }
+      ]
+    },
+    {
+      "name": "count-input",
+      "passed": true,
+      "seconds": 0.0012711660000022675,
+      "tokens": 26
+    },
+    {
+      "name": "occupied-context",
+      "passed": true,
+      "seconds": 1.639612167000003,
+      "translation": "The ocean appears blue primarily due to the way water interacts with sunlight. Sunlight is composed of all colors of the visible spectrum. When this light enters water, the water molecules preferentially absorb the longer wavelengths (red, orange, yellow). The shorter wavelengths, particularly blue, are scattered in all directions by the water molecules. This phenomenon, known as Rayleigh scattering, causes the blue light to be reflected back to our eyes from the water's surface, making the ocean look blue. The deeper the water, the more pronounced this scattering effect becomes.",
+      "stats": {
+        "inputTokens": 38,
+        "outputTokens": 109,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 146,
+        "contextEstimated": false,
+        "tps": 68.63487770281606,
+        "firstTokenSeconds": 0.06561666600000171,
+        "elapsedSeconds": 1.6395160410000025
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 19,
+        "prompt_ms": 64.445,
+        "prompt_per_token_ms": 3.3918421052631573,
+        "prompt_per_second": 294.8250446116844,
+        "predicted_n": 109,
+        "predicted_ms": 1573.544,
+        "predicted_per_token_ms": 14.569851851851853,
+        "predicted_per_second": 68.63487770281606
+      },
+      "thought": "",
+      "output": "The ocean appears blue primarily due to the way water interacts with sunlight. Sunlight is composed of all colors of the visible spectrum. When this light enters water, the water molecules preferentially absorb the longer wavelengths (red, orange, yellow). The shorter wavelengths, particularly blue, are scattered in all directions by the water molecules. This phenomenon, known as Rayleigh scattering, causes the blue light to be reflected back to our eyes from the water's surface, making the ocean look blue. The deeper the water, the more pronounced this scattering effect becomes.",
+      "liveStats": [
+        {
+          "inputTokens": 38,
+          "outputTokens": 14,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 51,
+          "contextEstimated": false,
+          "tps": 69.45780171400483,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 0.25281925000000044
+        },
+        {
+          "inputTokens": 38,
+          "outputTokens": 31,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 69,
+          "contextEstimated": false,
+          "tps": 68.67345770859562,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 0.5030332080000007
+        },
+        {
+          "inputTokens": 38,
+          "outputTokens": 48,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 86,
+          "contextEstimated": false,
+          "tps": 68.37825687819796,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 0.7535114580000009
+        },
+        {
+          "inputTokens": 38,
+          "outputTokens": 65,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 103,
+          "contextEstimated": false,
+          "tps": 68.8454827681908,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 1.0049482910000007
+        },
+        {
+          "inputTokens": 38,
+          "outputTokens": 82,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 120,
+          "contextEstimated": false,
+          "tps": 68.45321096265496,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 1.2553295000000035
+        },
+        {
+          "inputTokens": 38,
+          "outputTokens": 99,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 137,
+          "contextEstimated": false,
+          "tps": 68.55102714620674,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 1.5050560410000036
+        },
+        {
+          "inputTokens": 38,
+          "outputTokens": 109,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 146,
+          "contextEstimated": false,
+          "tps": 68.63487770281606,
+          "firstTokenSeconds": 0.06561666600000171,
+          "elapsedSeconds": 1.6395160410000025
+        }
+      ]
+    },
+    {
+      "name": "cancel-and-recover",
+      "passed": true,
+      "seconds": 0.2026000000000022,
+      "translation": "4",
+      "stats": {
+        "inputTokens": 37,
+        "outputTokens": 2,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 38,
+        "contextEstimated": false,
+        "tps": 59.37537109606936,
+        "firstTokenSeconds": 0.0662789159999993,
+        "elapsedSeconds": 0.08356083299999954
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 18,
+        "prompt_ms": 64.712,
+        "prompt_per_token_ms": 3.595111111111111,
+        "prompt_per_second": 278.1555198417604,
+        "predicted_n": 2,
+        "predicted_ms": 16.842,
+        "predicted_per_token_ms": 16.842,
+        "predicted_per_second": 59.37537109606936
+      },
+      "thought": "",
+      "output": "4",
+      "liveStats": [
+        {
+          "inputTokens": 37,
+          "outputTokens": 2,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 38,
+          "contextEstimated": false,
+          "tps": 59.37537109606936,
+          "firstTokenSeconds": 0.0662789159999993,
+          "elapsedSeconds": 0.08356083299999954
+        }
+      ]
+    },
+    {
+      "name": "cancel-during-thinking",
+      "passed": true,
+      "seconds": 0.19790949999999793,
+      "translation": "4",
+      "stats": {
+        "inputTokens": 37,
+        "outputTokens": 2,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 36,
+        "contextSize": 8192,
+        "contextTokens": 38,
+        "contextEstimated": false,
+        "tps": 69.96921354603974,
+        "firstTokenSeconds": 0.016958290999999008,
+        "elapsedSeconds": 0.03171770800000013
+      },
+      "timings": {
+        "cache_n": 36,
+        "prompt_n": 1,
+        "prompt_ms": 15,
+        "prompt_per_token_ms": 15,
+        "prompt_per_second": 66.66666666666667,
+        "predicted_n": 2,
+        "predicted_ms": 14.292,
+        "predicted_per_token_ms": 14.292,
+        "predicted_per_second": 69.96921354603974
+      },
+      "thought": "",
+      "output": "4",
+      "liveStats": [
+        {
+          "inputTokens": 37,
+          "outputTokens": 2,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 36,
+          "contextSize": 8192,
+          "contextTokens": 38,
+          "contextEstimated": false,
+          "tps": 69.96921354603974,
+          "firstTokenSeconds": 0.016958290999999008,
+          "elapsedSeconds": 0.03171770800000013
+        }
+      ]
+    },
+    {
+      "name": "near-limit-compaction",
+      "passed": true,
+      "seconds": 7.277249166999998,
+      "translation": "Project Code: ORCHID-729\nOwner: Ada\nLaunch Day: Friday\nBudget: 420 euros",
+      "stats": {
+        "inputTokens": 115,
+        "outputTokens": 28,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 142,
+        "contextEstimated": false,
+        "tps": 69.4603445747612,
+        "firstTokenSeconds": 0.09667366599999878,
+        "elapsedSeconds": 0.47581891600000015
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 96,
+        "prompt_ms": 74.183,
+        "prompt_per_token_ms": 0.7727395833333334,
+        "prompt_per_second": 1294.0970303169188,
+        "predicted_n": 28,
+        "predicted_ms": 388.711,
+        "predicted_per_token_ms": 14.396703703703704,
+        "predicted_per_second": 69.4603445747612
+      },
+      "thought": "",
+      "output": "Project Code: ORCHID-729\nOwner: Ada\nLaunch Day: Friday\nBudget: 420 euros",
+      "liveStats": [
+        {
+          "inputTokens": 115,
+          "outputTokens": 13,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 128,
+          "contextEstimated": false,
+          "tps": 68.74584660510094,
+          "firstTokenSeconds": 0.09667366599999878,
+          "elapsedSeconds": 0.26401145800000086
+        },
+        {
+          "inputTokens": 115,
+          "outputTokens": 28,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 142,
+          "contextEstimated": false,
+          "tps": 69.4603445747612,
+          "firstTokenSeconds": 0.09667366599999878,
+          "elapsedSeconds": 0.47581891600000015
+        }
+      ],
+      "compaction": {
+        "beforeTokens": 10455,
+        "afterTokens": 115,
+        "contextSize": 8192,
+        "targetTokens": 3686,
+        "parts": 2,
+        "at": 1790700911314
+      }
+    },
+    {
+      "name": "image-after-text",
+      "passed": true,
+      "seconds": 1.925730208000001,
+      "translation": "Blue",
+      "stats": {
+        "inputTokens": 118,
+        "outputTokens": 2,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 0,
+        "contextSize": 8192,
+        "contextTokens": 120,
+        "contextEstimated": true,
+        "tps": 60.63178318074335,
+        "firstTokenSeconds": 0.18267699999999606,
+        "elapsedSeconds": 0.1878836659999979
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 118,
+        "prompt_ms": 168.845,
+        "prompt_per_token_ms": 1.4308898305084745,
+        "prompt_per_second": 698.8658236844444,
+        "predicted_n": 2,
+        "predicted_ms": 16.493,
+        "predicted_per_token_ms": 16.493,
+        "predicted_per_second": 60.63178318074335
+      },
+      "thought": "",
+      "output": "Blue",
+      "liveStats": [
+        {
+          "inputTokens": 118,
+          "outputTokens": 2,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 0,
+          "contextSize": 8192,
+          "contextTokens": 120,
+          "contextEstimated": true,
+          "tps": 60.63178318074335,
+          "firstTokenSeconds": 0.18267699999999606,
+          "elapsedSeconds": 0.1878836659999979
+        }
+      ]
+    },
+    {
+      "name": "text-after-media",
+      "passed": true,
+      "seconds": 0.12353508299999885,
+      "translation": "Guten Morgen.",
+      "stats": {
+        "inputTokens": 31,
+        "outputTokens": 5,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 19,
+        "contextSize": 8192,
+        "contextTokens": 36,
+        "contextEstimated": true,
+        "tps": 67.47410681151109,
+        "firstTokenSeconds": 0.06411658399999942,
+        "elapsedSeconds": 0.12342499999999927
+      },
+      "timings": {
+        "cache_n": 19,
+        "prompt_n": 12,
+        "prompt_ms": 62.669,
+        "prompt_per_token_ms": 5.222416666666667,
+        "prompt_per_second": 191.48223204455155,
+        "predicted_n": 5,
+        "predicted_ms": 59.282,
+        "predicted_per_token_ms": 14.8205,
+        "predicted_per_second": 67.47410681151109
+      },
+      "thought": "",
+      "output": "Guten Morgen.",
+      "liveStats": [
+        {
+          "inputTokens": 31,
+          "outputTokens": 5,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 19,
+          "contextSize": 8192,
+          "contextTokens": 36,
+          "contextEstimated": true,
+          "tps": 67.47410681151109,
+          "firstTokenSeconds": 0.06411658399999942,
+          "elapsedSeconds": 0.12342499999999927
+        }
+      ]
+    },
+    {
+      "name": "audio-transcription",
+      "passed": true,
+      "seconds": 0.28746199999999955,
+      "translation": "The blue bicycle is beside the garden gate.",
+      "stats": {
+        "inputTokens": 95,
+        "outputTokens": 10,
+        "inputLabel": "Prompt tokens",
+        "cachedTokens": 4,
+        "contextSize": 8192,
+        "contextTokens": 105,
+        "contextEstimated": true,
+        "tps": 68.53696426939597,
+        "firstTokenSeconds": 0.15348291700000116,
+        "elapsedSeconds": 0.28485483300000125
+      },
+      "timings": {
+        "cache_n": 4,
+        "prompt_n": 91,
+        "prompt_ms": 149.776,
+        "prompt_per_token_ms": 1.64589010989011,
+        "prompt_per_second": 607.5739771391945,
+        "predicted_n": 10,
+        "predicted_ms": 131.316,
+        "predicted_per_token_ms": 14.590666666666667,
+        "predicted_per_second": 68.53696426939597
+      },
+      "thought": "",
+      "output": "The blue bicycle is beside the garden gate.",
+      "liveStats": [
+        {
+          "inputTokens": 95,
+          "outputTokens": 7,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 102,
+          "contextEstimated": true,
+          "tps": 67.85871814881416,
+          "firstTokenSeconds": 0.15348291700000116,
+          "elapsedSeconds": 0.25414066699999965
+        },
+        {
+          "inputTokens": 95,
+          "outputTokens": 10,
+          "inputLabel": "Prompt tokens",
+          "cachedTokens": 4,
+          "contextSize": 8192,
+          "contextTokens": 105,
+          "contextEstimated": true,
+          "tps": 68.53696426939597,
+          "firstTokenSeconds": 0.15348291700000116,
+          "elapsedSeconds": 0.28485483300000125
+        }
+      ]
+    }
+  ],
+  "memoryMethod": "Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.",
+  "commit": "325967253846dbe64fc0c9ef2b3b8a9d6b81f76b",
+  "dirtyFiles": [],
+  "packaged": true,
+  "sourceHashes": {
+    "scripts/evaluate-runtime.cjs": "4c73e3c3ad2b280b04bbb28149e31942ae3f6173f5b6dc1e695899c0ad5b2838",
+    "src/backends/serverRuntime.js": "c354d8553cf789c5a902e4cfb2375d42573e44bbb8fef7269b0cc2aec7019407",
+    "src/backends/local.js": "ee22ebfd1e1283f3556464b4dae2ac53280ef10ffd398f449c5f6380d0e48a37",
+    "src/backends/embeddedBackend.js": "c4fdafd28754131f7bcb60e0375257794769bfa14769c088559872752f86a9f3",
+    "src/backends/embeddedAssets.js": "4f0793c5c1c83acc49d703c925b78f4345162c3e76562ebe412f517165423247",
+    "src/backends/verifiedAssets.js": "3419077f6283f0cf8a092d2f2a16dac4d74464db8e42616f34a8e04c570cd0e7"
+  },
+  "modelSha256": "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2",
+  "binarySha256": "41df13c126456f8e5fab2057c86a790067a85ea1dfd8fbc0071cc45fbba56262",
+  "projectorSha256": "197f49a93027f9843772bd24a6a9e0be2a32a788de5a3def330e9c585d86edd1",
+  "runtimeStatus": {
+    "state": "idle"
+  },
+  "coldLoadSeconds": 3.760930916,
+  "textPeakRssKiB": 5855040,
+  "peakRssKiB": 6200016
+}

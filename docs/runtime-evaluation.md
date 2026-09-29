@@ -98,4 +98,25 @@ Evidence: [fresh acquisition](runtime-evidence/2026-09-29/integrated-download.js
 
 The production package command had malformed ignore quoting introduced during Stage A; it is corrected and the real command was exercised. The released 0.2.3 artifact predates that change. Neither validation package was installed or published.
 
-Next: Stage C portable foundations. Still unvalidated: native Windows/Linux builds (including ARM64), CPU fallback there, broad GPU/driver support, low-memory behavior, clean-machine installation/upgrades, and full first-run UI acquisition on those targets. Downloader failure paths use deterministic small fixtures; the real acquisition check fetched the runtime and reused the already verified 4.6 GB model and projector. No full model re-download was needed. Mac packaged UI tests use a mocked backend; real inference runs separately through the packaged production facade. These checks do not certify an installer or a new public release.
+After Stage B, still unvalidated: native Windows/Linux builds (including ARM64), CPU fallback there, broad GPU/driver support, low-memory behavior, clean-machine installation/upgrades, and full first-run UI acquisition on those targets. Downloader failure paths use deterministic small fixtures; the real acquisition check fetched the runtime and reused the already verified 4.6 GB model and projector. No full model re-download was needed. Mac packaged UI tests use a mocked backend; real inference runs separately through the packaged production facade. These checks do not certify an installer or a new public release.
+
+## Stage C Mac regression results
+
+Stage C (portable foundations) changed runtime selection, packaging, secure storage, profile selection and attachment conversion without changing the inference runtime. It was re-checked on the same Apple M5 Pro / 64 GiB / macOS 26.7 machine at `3259672`, with a clean working tree.
+
+| Check | Result |
+| --- | --- |
+| Clean install | `npm ci` from the lockfile; `npm audit` zero advisories |
+| Automated tests | 90/90 unit tests; source and product-package UI/attachment suites passed (including the real Chromium M4A decoder) |
+| Product package | Node packager (`npm run pack`) built and ad-hoc signed; signature verified; ~377 MiB; contains `word-extractor` and new modules; no `node-llama-cpp` |
+| Real model, source | 17/17 cases, offline, temporary profile, read-only model/runtime/projector |
+| Real model, packaged | 17/17 cases from a separate evaluation package outside the checkout, non-loopback fetch forbidden |
+
+| Metric (packaged) | Stage B (`da55759`) | Stage C (`3259672`) |
+| --- | --- | --- |
+| Median warm generation | 70.14 tok/s | 69.51 tok/s |
+| Median warm first token | 17.1 ms | 17.7 ms |
+| Peak summed RSS (text / all) | 5.59 / 5.91 GiB | 5.58 / 5.91 GiB |
+| Cold load (warm filesystem cache) | 3.57 s | 3.76 s |
+
+The differences are within run-to-run noise and far below the investigation thresholds. Evidence: [source](runtime-evidence/2026-09-29/stage-c-source.json), [packaged](runtime-evidence/2026-09-29/stage-c-packaged.json). Only Mac ARM64 is validated; Windows and Linux (x64 and ARM64) remain Stage D.
