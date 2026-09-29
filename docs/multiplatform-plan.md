@@ -1,6 +1,6 @@
 # Windows and Linux implementation plan
 
-Prepared: 2026-09-24. Updated: 2026-09-28. Status: requirements and initial baseline recorded; runtime evaluation in progress, implementation gates not yet passed.
+Prepared: 2026-09-24. Updated: 2026-09-29. Status: Stage A passed on the existing Mac target; adopt the server for Stage B integration. Other platforms remain unvalidated.
 
 ## Execution order and tracking
 
@@ -8,8 +8,8 @@ Read [requirements and acceptance criteria](multiplatform-requirements.md) first
 
 | Stage | Deliverable and exit gate | Status |
 | --- | --- | --- |
-| A — Baseline and runtime experiment | Isolated A/B harness; functional, lifecycle, context, performance, and packaged Mac evidence; written adoption decision | Source audit and initial tests recorded; experiment pending |
-| B — Consolidate embedded inference | One managed server adapter; lazy media setup; pinned resumable model acquisition; remove worker and `node-llama-cpp` after parity; Mac regression gates pass | Pending A |
+| A — Baseline and runtime experiment | Isolated A/B harness; functional, lifecycle, context, performance, and packaged Mac evidence; written adoption decision | Passed on Mac ARM64; see runtime evaluation evidence |
+| B — Consolidate embedded inference | One managed server adapter; lazy media setup; pinned resumable model acquisition; remove worker and `node-llama-cpp` after parity; Mac regression gates pass | Ready to implement after the recorded adoption decision |
 | C — Portable foundations | Runtime manifest, Node build scripts, shared secure storage, capability reporting, portable fixtures and converter decision | Pending B |
 | D — Native target builds | Windows x64, Linux x64, Linux ARM64 packaged CPU generation and attachment smoke checks on native targets | Pending C |
 | E — Recovery and acceleration | Bounded CPU recovery, actionable errors, measured hardware support and resource limits | Pending D |

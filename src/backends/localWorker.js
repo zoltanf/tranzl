@@ -30,10 +30,10 @@ function loadEngine(modelPath) {
       const llama = await getLlama();
       const model = await llama.loadModel({ modelPath });
       const context = await model.createContext({ contextSize: { max: 8192 } });
-      return { model, sequence: context.getSequence(), session: null, sessionReasoning: null };
+      return { model, sequence: context.getSequence(), gpu: llama.gpu, session: null, sessionReasoning: null };
     })();
     enginePromise.then(
-      (engine) => post({ type: 'status', state: 'ready', contextSize: engine.sequence.contextSize }),
+      (engine) => post({ type: 'status', state: 'ready', contextSize: engine.sequence.contextSize, gpu: engine.gpu, gpuLayers: engine.model.gpuLayers }),
       (err) => {
         post({ type: 'status', state: 'error', error: err.message });
         enginePromise = null; // allow retrying after a failed load

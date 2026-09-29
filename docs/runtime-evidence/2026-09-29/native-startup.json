@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-29T11:12:24.626Z",
+  "cases": [
+    {
+      "name": "missing-model",
+      "passed": true
+    },
+    {
+      "name": "corrupt-model",
+      "passed": true
+    },
+    {
+      "name": "cancel-during-native-startup",
+      "passed": true
+    }
+  ],
+  "offloadedLayers": 43,
+  "metalWarmupObserved": true,
+  "startupDiagnostics": {
+    "requestedGpu": "auto",
+    "swaFullCache": true,
+    "offloadedLayers": 43,
+    "totalLayers": 43,
+    "modelBufferBackends": [
+      "CPU"
+    ]
+  }
+}

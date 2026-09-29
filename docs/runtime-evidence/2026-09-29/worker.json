@@ -1,0 +1,984 @@
+{
+  "date": "2026-09-29T11:07:23.454Z",
+  "backend": "worker",
+  "platform": "darwin",
+  "arch": "arm64",
+  "os": "25.6.0",
+  "cpu": "Apple M5 Pro",
+  "ramBytes": 68719476736,
+  "electron": "44.4.5",
+  "node": "24.21.0",
+  "contextSize": 8192,
+  "cases": [
+    {
+      "name": "translation",
+      "passed": true,
+      "seconds": 0.6859870420000006,
+      "translation": "Das blaue Fahrrad steht neben dem Gartentor.",
+      "stats": {
+        "inputTokens": 41,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 52,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.655,
+        "firstTokenSeconds": 0.378,
+        "outputTokens": 11,
+        "tps": 39.71119133574007
+      },
+      "thought": "",
+      "output": "Das blaue Fahrrad steht neben dem Gartentor.",
+      "liveStats": [
+        {
+          "inputTokens": 41,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 42,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 41,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 10,
+          "contextTokens": 51,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 38.167938931297705
+        }
+      ]
+    },
+    {
+      "name": "editing",
+      "passed": true,
+      "seconds": 0.13358174999999936,
+      "translation": "She has three books.",
+      "stats": {
+        "inputTokens": 19,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 44,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.134,
+        "firstTokenSeconds": 0.063,
+        "outputTokens": 6,
+        "tps": 84.50704225352113
+      },
+      "thought": "",
+      "output": "She has three books.",
+      "liveStats": [
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 39,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        }
+      ]
+    },
+    {
+      "name": "warm-1",
+      "passed": true,
+      "seconds": 1.4131427910000003,
+      "translation": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which is green, masks other pigments. As temperatures drop and daylight shortens, the tree stops producing chlorophyll, causing it to fade. This reveals underlying pigments like carotenoids (yellow/orange) and anthocyanins (red), which were present in the leaves all along. The vibrant colors are a final display before the tree sheds its leaves to conserve water and energy for the winter.",
+      "stats": {
+        "inputTokens": 19,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 135,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 1.413,
+        "firstTokenSeconds": 0.062,
+        "outputTokens": 97,
+        "tps": 71.79866765358993
+      },
+      "thought": "",
+      "output": "Leaves change color in autumn due to a reduction in chlorophyll production. During the growing season, chlorophyll, which is green, masks other pigments. As temperatures drop and daylight shortens, the tree stops producing chlorophyll, causing it to fade. This reveals underlying pigments like carotenoids (yellow/orange) and anthocyanins (red), which were present in the leaves all along. The vibrant colors are a final display before the tree sheds its leaves to conserve water and energy for the winter.",
+      "liveStats": [
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 39,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 19,
+          "contextTokens": 57,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 74.21875
+        },
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 37,
+          "contextTokens": 75,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.83464566929133
+        },
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 55,
+          "contextTokens": 93,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.36842105263158
+        },
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 73,
+          "contextTokens": 111,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.06317867719645
+        },
+        {
+          "inputTokens": 19,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 91,
+          "contextTokens": 129,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.87993680884676
+        }
+      ]
+    },
+    {
+      "name": "warm-2",
+      "passed": true,
+      "seconds": 1.5044817920000004,
+      "translation": "Leaves change color in autumn due to a shift in the tree's production of chlorophyll. During the growing season, chlorophyll, which is green, masks other pigments. As days shorten and temperatures cool, the tree stops producing chlorophyll, causing it to break down. This unmasks underlying pigments like carotenoids (yellow and orange) that were present all along. Additionally, trees produce new pigments called anthocyanins, which create red and purple hues. This process is a natural response to seasonal changes, preparing the tree for dormancy.",
+      "stats": {
+        "inputTokens": 0,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 143,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 1.505,
+        "firstTokenSeconds": 0.015,
+        "outputTokens": 105,
+        "tps": 70.46979865771812
+      },
+      "thought": "",
+      "output": "Leaves change color in autumn due to a shift in the tree's production of chlorophyll. During the growing season, chlorophyll, which is green, masks other pigments. As days shorten and temperatures cool, the tree stops producing chlorophyll, causing it to break down. This unmasks underlying pigments like carotenoids (yellow and orange) that were present all along. Additionally, trees produce new pigments called anthocyanins, which create red and purple hues. This process is a natural response to seasonal changes, preparing the tree for dormancy.",
+      "liveStats": [
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 39,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 19,
+          "contextTokens": 57,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 73.64341085271317
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 37,
+          "contextTokens": 75,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.12475633528265
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 55,
+          "contextTokens": 93,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.15135834411385
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 73,
+          "contextTokens": 111,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 70.66795740561471
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 91,
+          "contextTokens": 129,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 70.59736229635377
+        }
+      ]
+    },
+    {
+      "name": "warm-3",
+      "passed": true,
+      "seconds": 1.405430875,
+      "translation": "Leaves change color in autumn due to seasonal changes affecting chlorophyll production. During spring and summer, chlorophyll, which is green, dominates the leaves, masking other pigments. As temperatures drop and daylight shortens, the tree stops producing chlorophyll, causing it to break down. This unmasks other pigments that were always present, such as carotenoids (yellow and orange). Additionally, trees produce anthocyanins, which create red and purple hues. This process is a natural response to prepare the tree for dormancy.",
+      "stats": {
+        "inputTokens": 0,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 137,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 1.405,
+        "firstTokenSeconds": 0.016,
+        "outputTokens": 99,
+        "tps": 71.2742980561555
+      },
+      "thought": "",
+      "output": "Leaves change color in autumn due to seasonal changes affecting chlorophyll production. During spring and summer, chlorophyll, which is green, dominates the leaves, masking other pigments. As temperatures drop and daylight shortens, the tree stops producing chlorophyll, causing it to break down. This unmasks other pigments that were always present, such as carotenoids (yellow and orange). Additionally, trees produce anthocyanins, which create red and purple hues. This process is a natural response to prepare the tree for dormancy.",
+      "liveStats": [
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 39,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 19,
+          "contextTokens": 57,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 74.50980392156863
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 37,
+          "contextTokens": 75,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.40704500978474
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 55,
+          "contextTokens": 93,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.70795306388527
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 73,
+          "contextTokens": 111,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.49853085210579
+        },
+        {
+          "inputTokens": 0,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 91,
+          "contextTokens": 129,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.31661442006269
+        }
+      ]
+    },
+    {
+      "name": "reasoning-on",
+      "passed": true,
+      "seconds": 7.408835167000001,
+      "translation": "66",
+      "stats": {
+        "inputTokens": 71,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 586,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 7.393,
+        "firstTokenSeconds": 0.209,
+        "outputTokens": 511,
+        "tps": 71.13028953229399
+      },
+      "thought": "Let $A$ be the number of adult tickets sold and $C$ be the number of child tickets sold.\nThe total number of tickets sold is 120:\n$A + C = 120$ (1)\n\nThe cost of an adult ticket is 15 euros, and the cost of a child ticket is 9 euros.\nThe total revenue is 1476 euros:\n$15A + 9C = 1476$ (2)\n\nWe need to find the value of $A$.\n\nFrom (1), we can express $C$ in terms of $A$:\n$C = 120 - A$\n\nSubstitute this into (2):\n$15A + 9(120 - A) = 1476$\n$15A + 9 \\times 120 - 9A = 1476$\n$15A + 1080 - 9A = 1476$\nCombine the $A$ terms:\n$(15A - 9A) + 1080 = 1476$\n$6A + 1080 = 1476$\n\nSubtract 1080 from both sides:\n$6A = 1476 - 1080$\n$6A = 396$\n\nDivide by 6:\n$A = 396 / 6$\n$A = 66$\n\nCheck the answer:\nIf $A = 66$, then $C = 120 - 66 = 54$.\nTotal revenue = $15A + 9C = 15(66) + 9(54)$\n$15 \\times 66 = 15 \\times (60 + 6) = 900 + 90 = 990$\n$9 \\times 54 = 9 \\times (50 + 4) = 450 + 36 = 486$\nTotal revenue = $990 + 486 = 1476$.\nThe total revenue matches the given information.\n\nThe number of adult tickets sold is 66.",
+      "output": "66",
+      "liveStats": [
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 4,
+          "contextTokens": 79,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 22,
+          "contextTokens": 97,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 86.27450980392156
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 40,
+          "contextTokens": 115,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 78.58546168958742
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 58,
+          "contextTokens": 133,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 75.81699346405229
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 76,
+          "contextTokens": 151,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 74.5829244357213
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 94,
+          "contextTokens": 169,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 73.66771159874608
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 112,
+          "contextTokens": 187,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 73.20261437908496
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 130,
+          "contextTokens": 205,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.86995515695067
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 148,
+          "contextTokens": 223,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.62021589793916
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 166,
+          "contextTokens": 241,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.4258289703316
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 184,
+          "contextTokens": 259,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.21350078492935
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 202,
+          "contextTokens": 277,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.09136331192006
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 220,
+          "contextTokens": 295,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.96597971867844
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 238,
+          "contextTokens": 313,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.81653590826795
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 256,
+          "contextTokens": 331,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.72877556738582
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 274,
+          "contextTokens": 349,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.65271966527197
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 292,
+          "contextTokens": 367,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.58617308163767
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 310,
+          "contextTokens": 385,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.52745731425935
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 328,
+          "contextTokens": 403,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.47526694268903
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 346,
+          "contextTokens": 421,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.44332025603964
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 364,
+          "contextTokens": 439,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.37254901960785
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 382,
+          "contextTokens": 457,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.3085682284861
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 400,
+          "contextTokens": 475,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.27583749109051
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 418,
+          "contextTokens": 493,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.24595193454917
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 436,
+          "contextTokens": 511,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.21855602744202
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 454,
+          "contextTokens": 529,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.17102994199718
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 472,
+          "contextTokens": 547,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.15935474144429
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 490,
+          "contextTokens": 565,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.14854072890954
+        },
+        {
+          "inputTokens": 71,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 509,
+          "contextTokens": 584,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.12912241475685
+        }
+      ],
+      "thoughtPresent": true
+    },
+    {
+      "name": "reasoning-off",
+      "passed": true,
+      "seconds": 0.11813274999999702,
+      "translation": "323",
+      "stats": {
+        "inputTokens": 33,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 41,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.105,
+        "firstTokenSeconds": 0.062,
+        "outputTokens": 4,
+        "tps": 93.0232558139535
+      },
+      "thought": "",
+      "output": "323",
+      "liveStats": [
+        {
+          "inputTokens": 33,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 38,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        }
+      ]
+    },
+    {
+      "name": "conversation-recall",
+      "passed": true,
+      "seconds": 0.16284712500000023,
+      "translation": "ORCHID-729",
+      "stats": {
+        "inputTokens": 49,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 76,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.162,
+        "firstTokenSeconds": 0.063,
+        "outputTokens": 8,
+        "tps": 80.8080808080808
+      },
+      "thought": "",
+      "output": "ORCHID-729",
+      "liveStats": [
+        {
+          "inputTokens": 49,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 69,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        }
+      ]
+    },
+    {
+      "name": "session-isolation",
+      "passed": true,
+      "seconds": 0.0777465000000011,
+      "translation": "UNKNOWN",
+      "stats": {
+        "inputTokens": 22,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 43,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.078,
+        "firstTokenSeconds": 0.063,
+        "outputTokens": 2,
+        "tps": 133.33333333333334
+      },
+      "thought": "",
+      "output": "UNKNOWN",
+      "liveStats": [
+        {
+          "inputTokens": 22,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 42,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        }
+      ]
+    },
+    {
+      "name": "count-input",
+      "passed": true,
+      "seconds": 0.000370083000001614,
+      "tokens": 26
+    },
+    {
+      "name": "occupied-context",
+      "passed": true,
+      "seconds": 1.6929275830000006,
+      "translation": "The ocean appears blue primarily due to the way water interacts with sunlight. Sunlight is composed of all colors of the visible spectrum. When this light enters water, the water molecules preferentially absorb the longer wavelengths (red, orange, yellow). The shorter, higher-energy wavelengths, particularly blue, are scattered in all directions by the water molecules. This phenomenon, known as Rayleigh scattering, causes the blue light to be reflected back to our eyes from all depths, making the vast expanse of the ocean appear blue. The clarity and depth of the water influence the intensity of this blue hue.",
+      "stats": {
+        "inputTokens": 18,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 153,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 1.682,
+        "firstTokenSeconds": 0.062,
+        "outputTokens": 116,
+        "tps": 71.60493827160494
+      },
+      "thought": "",
+      "output": "The ocean appears blue primarily due to the way water interacts with sunlight. Sunlight is composed of all colors of the visible spectrum. When this light enters water, the water molecules preferentially absorb the longer wavelengths (red, orange, yellow). The shorter, higher-energy wavelengths, particularly blue, are scattered in all directions by the water molecules. This phenomenon, known as Rayleigh scattering, causes the blue light to be reflected back to our eyes from all depths, making the vast expanse of the ocean appear blue. The clarity and depth of the water influence the intensity of this blue hue.",
+      "liveStats": [
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 38,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 19,
+          "contextTokens": 56,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 74.80314960629921
+        },
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 37,
+          "contextTokens": 74,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 73.26732673267327
+        },
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 55,
+          "contextTokens": 92,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.55936675461741
+        },
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 73,
+          "contextTokens": 110,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 72.2057368941642
+        },
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 91,
+          "contextTokens": 128,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.87993680884676
+        },
+        {
+          "inputTokens": 18,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 109,
+          "contextTokens": 146,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 71.71052631578948
+        }
+      ]
+    },
+    {
+      "name": "cancel-and-recover",
+      "passed": true,
+      "seconds": 0.15738058399999863,
+      "translation": "4",
+      "stats": {
+        "inputTokens": 17,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 38,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.079,
+        "firstTokenSeconds": 0.063,
+        "outputTokens": 2,
+        "tps": 125
+      },
+      "thought": "",
+      "output": "4",
+      "liveStats": [
+        {
+          "inputTokens": 17,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 37,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        }
+      ]
+    },
+    {
+      "name": "cancel-during-thinking",
+      "passed": true,
+      "seconds": 0.22365662500000327,
+      "translation": "4",
+      "stats": {
+        "inputTokens": 32,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 38,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.076,
+        "firstTokenSeconds": 0.061,
+        "outputTokens": 2,
+        "tps": 133.33333333333334
+      },
+      "thought": "",
+      "output": "4",
+      "liveStats": [
+        {
+          "inputTokens": 32,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 37,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        }
+      ]
+    },
+    {
+      "name": "near-limit-compaction",
+      "passed": true,
+      "seconds": 7.014082792000001,
+      "translation": "Project Code: ORCHID-729\nOwner: Ada\nLaunch Day: Friday\nBudget: 420 euros",
+      "stats": {
+        "inputTokens": 104,
+        "inputLabel": "Evaluated input",
+        "contextTokens": 132,
+        "contextSize": 8192,
+        "contextEstimated": false,
+        "cachedTokens": null,
+        "elapsedSeconds": 0.502,
+        "firstTokenSeconds": 0.12,
+        "outputTokens": 28,
+        "tps": 73.29842931937172
+      },
+      "thought": "",
+      "output": "Project Code: ORCHID-729\nOwner: Ada\nLaunch Day: Friday\nBudget: 420 euros",
+      "liveStats": [
+        {
+          "inputTokens": 104,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 1,
+          "contextTokens": 105,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": null
+        },
+        {
+          "inputTokens": 104,
+          "inputLabel": "Evaluated input",
+          "outputTokens": 19,
+          "contextTokens": 123,
+          "contextSize": 8192,
+          "contextEstimated": false,
+          "cachedTokens": null,
+          "tps": 74.50980392156863
+        }
+      ],
+      "compaction": {
+        "beforeTokens": 10455,
+        "afterTokens": 105,
+        "contextSize": 8192,
+        "targetTokens": 3686,
+        "parts": 2,
+        "at": 1790680075535
+      }
+    }
+  ],
+  "memoryMethod": "Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.",
+  "commit": "b1ea1b3d9d97a8a09772991c7b8df92ab8d3fb37",
+  "dirtyFiles": [
+    "M package.json",
+    " M src/backends/localWorker.js",
+    "?? scripts/evaluate-runtime.cjs",
+    "?? scripts/package-evaluation.cjs",
+    "?? src/backends/serverRuntime.js",
+    "?? tests/fixtures/",
+    "?? tests/server-runtime.cjs"
+  ],
+  "packaged": true,
+  "sourceHashes": {
+    "scripts/evaluate-runtime.cjs": "3f886a983d6595682b52e85744661fbdd8c1f182f6e279686b3be85ffccd6576",
+    "src/backends/serverRuntime.js": "21f623bce8a8c451bfd000f02fcb1949884226bf2ba875dd80c807ef30845e39",
+    "src/backends/localWorker.js": "4ad0a5d03a241faed5bfdf706688716f730a58f2343bfb7ea489cd169074b021",
+    "src/backends/local.js": "337c11ec5d0edf7eff779d8477c097fe7c167839324291a49982b288ff65ebc7"
+  },
+  "modelSha256": "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2",
+  "runtimeStatus": {
+    "type": "status",
+    "state": "ready",
+    "contextSize": 8192,
+    "gpu": "metal",
+    "gpuLayers": 43
+  },
+  "coldLoadSeconds": 8.015487417,
+  "textPeakRssKiB": 5916560,
+  "peakRssKiB": 5916560
+}
