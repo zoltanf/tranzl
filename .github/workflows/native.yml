@@ -42,7 +42,6 @@ jobs:
         shell: bash
     env:
       INFERENCE: ${{ matrix.inference && (github.event_name == 'workflow_dispatch' && inputs.inference || contains(github.event.head_commit.message, '[inference]')) }}
-      XVFB: ${{ startsWith(matrix.runner, 'ubuntu') && 'xvfb-run -a' || '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -65,8 +64,15 @@ jobs:
             if apt-cache show "${pair%%:*}" > /dev/null 2>&1; then pkgs+=("${pair%%:*}"); else pkgs+=("${pair##*:}"); fi
           done
           sudo apt-get install -y --no-install-recommends "${pkgs[@]}"
+          # Electron needs a display; xvfb-run's default screen is only 640x480.
+          printf '#!/bin/sh\nexec xvfb-run -a -s "-screen 0 1920x1080x24" "$@"\n' > "$RUNNER_TEMP/with-display"
+          chmod +x "$RUNNER_TEMP/with-display" && echo "XVFB=$RUNNER_TEMP/with-display" >> "$GITHUB_ENV"
 
       - run: npm ci
+
+      - name: Download Electron
+        # Electron 44 has no install script; it downloads its binary on first use.
+        run: node -e "console.log(require('electron'))"
 
       - name: Let Chromium's sandbox run (Linux)
         if: runner.os == 'Linux'
