@@ -48,7 +48,8 @@ test('chat store round trip, removal and unavailable encryption', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-store-test-'));
   const handlers = new Map(); let available = true;
   require('../src/chatStore')({ ipcMain: { handle: (key, value) => handlers.set(key, value) }, app: { getPath: () => dir }, safeStorage: {
-    isEncryptionAvailable: () => available, encryptString: s => Buffer.from(s), decryptString: b => b.toString(),
+    isEncryptionAvailable: () => available, getSelectedStorageBackend: () => 'gnome_libsecret', // consulted on Linux
+    encryptString: s => Buffer.from(s), decryptString: b => b.toString(),
   } });
   try {
     const save = handlers.get('chat-save'), load = handlers.get('chat-load');

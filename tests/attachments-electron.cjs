@@ -20,6 +20,11 @@ async function read(filename) {
   });
 }
 app.on('window-all-closed', () => {});
+// Best effort: Windows keeps this process's own profile files locked until it exits.
+function cleanup() {
+  try { fs.rmSync(root, { recursive: true, force: true, maxRetries: 3 }); }
+  catch (error) { console.warn(`Could not remove ${root} (${error.code}); it is a temporary test folder.`); }
+}
 app.whenReady().then(async () => {
   try {
     const canvas = createCanvas(30, 20); fs.writeFileSync(path.join(root, 'image.png'), canvas.toBuffer('image/png'));
@@ -71,6 +76,6 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(root, 'test.pdf'), await window.webContents.printToPDF({})); window.destroy();
     assert.match((await read(path.join(root, 'test.pdf'))).content, /verification 1234/);
     console.log('PASS: Electron worker image, PDF, DOC, DOCX, XLS, XLSX and M4A readers.');
-    fs.rmSync(root, { recursive: true, force: true }); app.exit(0);
-  } catch (err) { console.error(err); fs.rmSync(root, { recursive: true, force: true }); app.exit(1); }
+    cleanup(); app.exit(0);
+  } catch (err) { console.error(err); cleanup(); app.exit(1); }
 });

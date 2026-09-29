@@ -116,9 +116,13 @@
     else node.textContent = message.status || '';
     return node;
   }
+  // A pointer held down in the list pauses auto-scroll, so streamed tokens cannot
+  // move a summary or button out from under a click in progress.
+  let pressing = false;
+  const followsBottom = box => !pressing && box.scrollHeight - box.scrollTop - box.clientHeight < 80;
   function renderMessages() {
     const box = el('messages');
-    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    const atBottom = followsBottom(box);
     // Keep disclosure nodes stable while tokens stream so pointer-down/up
     // reach the same summary and expanded traces retain their scroll position.
     const thoughts = new Map([...box.querySelectorAll('details[data-message]')].map(d => [d.dataset.message, d]));
@@ -176,7 +180,7 @@
     const box = el('messages');
     const article = [...box.children].find(node => node.dataset.message === message.id);
     if (!article) { renderMessages(); return; }
-    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    const atBottom = followsBottom(box);
     const content = article.querySelector('.chat-markdown');
     if (content.dataset.source !== message.content) {
       content.replaceChildren(markdown(message.content));
@@ -429,6 +433,8 @@
   window.tranzl.onBackendStatus(refreshModelInfo);
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderStats);
   window.addEventListener('beforeunload', () => persist(true));
+  el('messages').addEventListener('pointerdown', () => { pressing = true; });
+  for (const type of ['pointerup', 'pointercancel', 'blur']) window.addEventListener(type, () => { pressing = false; });
   controls();
   // Saved sessions, with replies that were cut off by the last shutdown marked as interrupted.
   function savedSessions(data) {

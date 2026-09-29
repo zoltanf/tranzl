@@ -89,15 +89,19 @@ jobs:
           fi
 
       - name: Unit tests
+        timeout-minutes: 10
         run: npm test
 
       - name: Electron UI, attachment and shutdown tests
+        timeout-minutes: 20
         run: $XVFB npm run test:electron
 
       - name: Package natively
+        timeout-minutes: 20
         run: npm run pack
 
       - name: UI tests against the package
+        timeout-minutes: 20
         run: |
           app=$(node -p "require('path').resolve('dist', 'Tranzl-' + process.platform + '-' + process.arch, process.platform === 'darwin' ? 'Tranzl.app/Contents/Resources/app' : 'resources/app')")
           TRANZL_APP_ROOT="$app" $XVFB npm run test:electron
@@ -112,6 +116,7 @@ jobs:
           ! grep -q 'not found' "$RUNNER_TEMP/evidence/runtime-libraries.txt"
 
       - name: Download the pinned model with Tranzl's verified downloader
+        timeout-minutes: 45
         if: env.INFERENCE == 'true'
         run: |
           node -e "
@@ -122,10 +127,12 @@ jobs:
           " "$RUNNER_TEMP/models"
 
       - name: Build the evaluation package
+        timeout-minutes: 20
         if: env.INFERENCE == 'true'
         run: npm run pack:evaluation -- "$RUNNER_TEMP/eval"
 
       - name: Real-model CPU checks from the package, outside the checkout
+        timeout-minutes: 150
         if: env.INFERENCE == 'true'
         run: |
           dir="$RUNNER_TEMP/eval/TranzlRuntimeEvaluation-$(node -p 'process.platform + "-" + process.arch')"

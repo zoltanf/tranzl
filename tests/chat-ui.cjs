@@ -1,7 +1,7 @@
 const appRoot = process.env.TRANZL_APP_ROOT || require('node:path').resolve(__dirname, '..');
 const appRequire = require('node:module').createRequire(require('node:path').join(appRoot, 'package.json'));
 // Run with: node_modules/.bin/electron tests/chat-ui.cjs
-const { app, BrowserWindow, ipcMain, nativeTheme, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -175,21 +175,21 @@ app.whenReady().then(async () => {
     win.webContents.send('chat-event', { requestId: lastRequest.requestId, type: 'chunk', delta: 'Back to generating' });
     await waitFor(`!document.querySelector('.chat-progress-fill')`);
     // A token arriving between mouse-down and mouse-up must not eat the click.
-    win.setSize(1100, 800); win.show(); win.focus();
-    // Synthetic clicks need the key window: an inactive macOS window treats the first
-    // click as activation. CI runners start with another process frontmost.
-    if (process.platform === 'darwin' && process.env.CI) app.focus({ steal: true });
-    for (const end = Date.now() + 5000; !win.isFocused() && Date.now() < end;) await new Promise(r => setTimeout(r, 50));
+    // A small window (like a 1024x684 CI screen) makes the list scroll, so a streamed
+    // token could move the summary out from under the pointer.
+    win.setSize(1024, 684); win.show(); win.focus();
     const thinkingEvent = { requestId: lastRequest.requestId, type: 'thinking', delta: 'First thought. ' };
     win.webContents.send('chat-event', thinkingEvent);
     await waitFor(`!!document.querySelector('details[data-message] summary')`);
-    await run(`document.querySelector('details[data-message] summary').scrollIntoView({ block: 'center' })`);
+    // Follow the bottom, as while reading a streaming reply, so the summary position is settled.
+    await run(`document.getElementById('chat-messages').scrollTop = 1e9`);
+    await run(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
     const point = await run(`(() => { const r = document.querySelector('details[data-message] summary').getBoundingClientRect(); return { x: Math.round(r.x + 20), y: Math.round(r.y + r.height / 2) }; })()`);
-    console.log('click target:', JSON.stringify({ focused: win.isFocused(), content: win.getContentBounds(), workArea: screen.getPrimaryDisplay().workAreaSize, point,
-      hit: await run(`(() => { const e = document.elementFromPoint(${point.x}, ${point.y}); return e && e.tagName + '.' + e.className; })()`) }));
     win.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...point });
+    // Visible answer text grows below the summary; following the bottom would move it.
     win.webContents.send('chat-event', { ...thinkingEvent, delta: 'Second thought. ' });
-    await waitFor(`document.querySelector('.chat-thought').textContent.includes('Second thought')`);
+    win.webContents.send('chat-event', { requestId: lastRequest.requestId, type: 'chunk', delta: '\n\nA longer streamed paragraph. '.repeat(6) });
+    await waitFor(`document.querySelector('.chat-thought').textContent.includes('Second thought') && document.querySelector('.chat-message:last-child').textContent.includes('longer streamed paragraph')`);
     win.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...point });
     await waitFor(`document.querySelector('details[data-message]').open`);
     win.webContents.send('chat-event', { ...thinkingEvent, delta: 'Third thought.' });
