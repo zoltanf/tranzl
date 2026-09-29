@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . Tranzl --platform=darwin --arch=arm64 --no-asar --icon=build/icon.icns --app-bundle-id=com.tranzl.app --overwrite --out=dist --ignore='^/dist$' --ignore='^/out$' --ignore='^/build' --ignore='^/scripts' --ignore='^/tests$' --ignore='^/docs$' && codesign --force --deep --sign - dist/Tranzl-darwin-arm64/Tranzl.app && codesign --verify --deep --strict dist/Tranzl-darwin-arm64/Tranzl.app",
+    "pack": "node scripts/pack.cjs",
     "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/",
     "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs tests/server-runtime.cjs tests/verified-assets.cjs",
     "test:electron": "electron tests/chat-ui.cjs && electron tests/attachments-electron.cjs",

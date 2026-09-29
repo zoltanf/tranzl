@@ -27,7 +27,13 @@ npm ci
 npm start
 ```
 
-Package and install to /Applications:
+Package for the current OS/architecture into `dist/` (native builds only: build each target on its own machine after a clean `npm ci`; macOS builds are ad-hoc signed):
+
+```bash
+npm run pack
+```
+
+Package and install to /Applications (macOS only):
 
 ```bash
 npm run install-app
