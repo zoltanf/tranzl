@@ -68,3 +68,22 @@ test('runtime verification rejects missing and corrupt companion libraries', asy
   await fs.writeFile(path.join(dir, 'library'), 'badbad');
   assert.equal(await verifyRuntime(dir, files), false);
 });
+test('runtime manifest pins every listed target completely', () => {
+  const { manifest, archiveFormats } = require('../src/backends/embeddedAssets');
+  assert.ok(Object.keys(manifest.targets).length);
+  for (const [target, runtime] of Object.entries(manifest.targets)) {
+    assert.equal(target, `${runtime.os}-${runtime.arch}`);
+    assert.ok(runtime.compute.includes('cpu'), `${target} must ship a CPU path`);
+    assert.match(runtime.url, new RegExp(`^https://.+/${manifest.version}/`));
+    assert.ok(Number.isInteger(runtime.bytes) && runtime.bytes > 0);
+    assert.match(runtime.sha256, /^[0-9a-f]{64}$/);
+    assert.ok(archiveFormats.includes(runtime.archive.format)); assert.ok(runtime.archive.root);
+    for (const name of [runtime.executable, ...runtime.notices]) assert.ok(runtime.files[name], `${target} must verify ${name}`);
+    for (const sha256 of Object.values(runtime.files)) assert.match(sha256, /^[0-9a-f]{64}$/);
+  }
+});
+test('runtime selection keeps the existing install path and rejects unvalidated targets', () => {
+  const { paths } = require('../src/backends/embeddedAssets');
+  assert.equal(paths('/data', 'darwin-arm64').binary, path.join('/data', 'llama-b11158', 'llama-server'));
+  for (const target of ['linux-x64', 'linux-arm64', 'win32-x64']) assert.throws(() => paths('/data', target), new RegExp(`not available for ${target}`));
+});

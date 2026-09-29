@@ -58,7 +58,7 @@ Decision: adopt. Full sliding-window caching (`--swa-full`) resolved a first-tok
 | `src/backends/serverRuntime.js` | Owns one authenticated loopback child and serialized request queue; streaming, token counts, context telemetry, cancellation and cleanup |
 | `src/backends/embeddedAssets.js` | Immutable model/projector/runtime identities, existing-cache verification, staged runtime extraction/replacement and lazy media acquisition |
 | `src/backends/verifiedAssets.js` | SHA-256 verification with metadata-based memoization, resumable downloads, size/range validation and promotion after verification |
-| `src/backends/runtime-files-darwin-arm64.json` | Executable and companion-library hashes derived from the checksum-verified upstream archive |
+| `src/backends/runtime-manifest.json` | Per-target (`<os>-<arch>`) runtime pins: compute variants, archive URL/size/hash, archive format/root, executable, notices and companion-library hashes derived from the checksum-verified upstream archive (C1) |
 | `src/main.js` | All embedded generation/compaction/counting routes use the facade; quit aborts work and waits for server cleanup |
 | `scripts/evaluate-runtime.cjs` | Explicit-path, isolated real-model harness; worker baseline, direct server and integrated embedded modes |
 | `scripts/package-evaluation.cjs` | Separate evaluation app identity/entry point; does not install or publish |
@@ -87,9 +87,9 @@ Limits: packaged UI checks use a mocked model; real inference runs separately th
 
 ## Remaining work — start with Stage C
 
-### C: portable foundations (not started)
+### C: portable foundations (in progress)
 
-1. Generalize runtime manifests to record target OS/architecture, compute variant, immutable URL/hash, archive layout, executable, companion libraries and notices. Current runtime selection supports **only darwin-arm64** and extraction uses `/usr/bin/tar`. Unsupported platforms fail clearly; do not add untested target entries and claim support.
+1. **Done (C1).** `runtime-manifest.json` is keyed by target and records OS/architecture, compute variants, immutable URL/size/hash, archive format/root, executable, notices and companion libraries; tests check every listed target is complete and includes a CPU path. Only `darwin-arm64` is listed. Other targets fail with a clear message. Extraction goes through a per-format adapter; only `tar.gz` (via `/usr/bin/tar`) exists. Windows `.zip` and Linux entries are added in Stage D along with native validation. The install directory (`multimodal/llama-b11158/`) and cached archive name are unchanged, so existing runtimes are reused. Verified offline: the pinned archive was extracted into a temporary directory through the new path, all files were verified and the binary ran.
 2. Replace Unix-only shared packaging/test orchestration with Node entry points. Keep OS signing/install adapters explicit and preserve existing Mac commands as aliases or document replacements. Pin clean dependency installation with `npm ci`; do not carry Mac `node_modules` to other targets.
 3. Centralize secure persistence for history and Chat. Current checks use `safeStorage.isEncryptionAvailable()` alone. Reject Linux `basic_text`; expose memory-only operation; distinguish absent files from unreadable ciphertext; prevent defaults overwriting unreadable stores; preserve prior data on failed atomic writes. Test both stores, restart, delete, locked keyring and write failures.
 4. Add an explicit safe test-profile selector **before application initialization**. The inference harness already isolates its own profile, but `src/main.js` still pins the normal app profile and has no such production-main test hook. Do not assume `TRANZL_APP_ROOT` changes userData; it only selects modules for harnesses.
