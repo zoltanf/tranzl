@@ -1,8 +1,7 @@
-const fs = require('fs');
 const path = require('path');
 const { Worker } = require('worker_threads');
 const { attachmentCapabilities, readAttachment } = require('./attachments');
-const { createSecureStore } = require('./secureStore');
+const { createSecureStore, registerStore } = require('./secureStore');
 function parseFile(filename) {
   // M4A needs Chromium's decoder, which only exists outside worker threads.
   if (path.extname(filename).toLowerCase() === '.m4a') return readAttachment(filename, { decodeAudio: require('./audioDecoder').decodeToWav });
@@ -15,15 +14,11 @@ function parseFile(filename) {
   });
 }
 
-function registerChatStore({ ipcMain, app, safeStorage, dialog }) {
+function registerChatStore({ ipcMain, app, safeStorage, dialog, shell }) {
   const store = createSecureStore({ file: () => path.join(app.getPath('userData'), 'chats.enc'), safeStorage, label: 'Chats' });
-  ipcMain.handle('chat-load', () => {
-    const { data, persistent, error } = store.load();
-    return { sessions: [], ...(data && typeof data === 'object' ? data : {}), persistent, error };
-  });
-  ipcMain.handle('chat-save', (_event, data) => {
-    if (!data || !Array.isArray(data.sessions)) return { ok: false, error: 'Invalid chat data' };
-    return store.save(data);
+  registerStore({ ipcMain, shell }, 'chat', store, {
+    normalize: data => ({ sessions: [], ...(data && typeof data === 'object' ? data : {}) }),
+    valid: data => Boolean(data) && Array.isArray(data.sessions),
   });
   ipcMain.handle('attachment-capabilities', () => attachmentCapabilities());
   ipcMain.handle('chat-attach', async () => {

@@ -28,14 +28,15 @@ function tempDir(t) {
 // Registers the real IPC handlers for both stores against a temporary profile.
 function stores(dir, safeStorage) {
   const handlers = new Map();
-  const electron = { ipcMain: { handle: (name, handler) => handlers.set(name, handler) }, safeStorage, dialog: {},
+  const revealed = [];
+  const electron = { ipcMain: { handle: (name, handler) => handlers.set(name, handler) }, safeStorage, dialog: {}, shell: { showItemInFolder: file => revealed.push(file) },
     app: { setPath() {}, getPath: () => dir, whenReady: () => ({ then() {} }), on() {} } };
   const mainPath = path.resolve(__dirname, '../src/main.js'), realRequire = createRequire(mainPath);
   const context = vm.createContext({ require: name => name === 'electron' ? electron : realRequire(name), AbortController, AbortSignal, TextDecoder, Buffer, console, __dirname: path.dirname(mainPath) });
   vm.runInContext(fs.readFileSync(mainPath, 'utf8'), context);
   // Results cross a vm realm (like IPC); compare plain copies.
   const call = async (name, ...args) => JSON.parse(JSON.stringify(await handlers.get(name)({}, ...args)));
-  return { call };
+  return { call, revealed };
 }
 
 test('storage status rejects missing encryption and Linux basic_text only', () => {
@@ -130,4 +131,88 @@ test('unreadable non-ENOENT read errors are treated as preserved data', t => {
   assert.equal(store.load().persistent, false);
   assert.equal(store.save({ sessions: [] }).ok, false);
   assert.ok(fs.statSync(file).isDirectory());
+});
+
+const backups = dir => fs.readdirSync(dir).filter(name => name.includes('.unreadable-')).sort();
+for (const name of ['chats.enc', 'history.enc']) {
+  const prefix = name === 'chats.enc' ? 'chat' : 'history';
+  const data = name === 'chats.enc' ? { sessions: [{ id: 'temporary' }] } : { sourceHistory: [{ text: 'temporary', ts: 2 }] };
+  test(`${name}: Try again loads data once the keyring unlocks`, async t => {
+    const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, name);
+    fs.writeFileSync(file, safeStorage.encryptString(JSON.stringify(prefix === 'chat' ? { sessions: [{ id: 'saved' }] } : { customPrompt: 'saved' })));
+    safeStorage.locked = true;
+    const app = stores(dir, safeStorage);
+    const locked = await app.call(`${prefix}-load`);
+    assert.equal(locked.canRetry, true); assert.equal(locked.canReset, true);
+    assert.equal((await app.call(`${prefix}-retry`)).persistent, false);
+    safeStorage.locked = false;
+    const unlocked = await app.call(`${prefix}-retry`);
+    assert.equal(unlocked.persistent, true);
+    assert.deepEqual(prefix === 'chat' ? unlocked.sessions : unlocked.store, prefix === 'chat' ? [{ id: 'saved' }] : { customPrompt: 'saved' });
+    assert.deepEqual(await app.call(`${prefix}-save`, data), { ok: true });
+  });
+  test(`${name}: Start fresh keeps the unreadable file byte-for-byte and saves in its place`, async t => {
+    const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, name);
+    fs.writeFileSync(file, 'unreadable ciphertext');
+    const app = stores(dir, safeStorage);
+    await app.call(`${prefix}-load`);
+    assert.deepEqual(await app.call(`${prefix}-reveal-backup`), { ok: false });
+    const result = await app.call(`${prefix}-reset`, data);
+    assert.equal(result.ok, true);
+    assert.match(result.backup, new RegExp(`^${prefix === 'chat' ? 'chats' : 'history'}\\.unreadable-\\d{8}-\\d{6}\\.enc$`));
+    assert.equal(fs.readFileSync(path.join(dir, result.backup), 'utf8'), 'unreadable ciphertext');
+    assert.deepEqual(JSON.parse(safeStorage.decryptString(fs.readFileSync(file))), data);
+    assert.deepEqual(await app.call(`${prefix}-reveal-backup`), { ok: true });
+    assert.deepEqual(app.revealed, [path.join(dir, result.backup)]);
+    // After restart, the new file is read normally and the old one is still there.
+    assert.equal((await stores(dir, safeStorage).call(`${prefix}-load`)).persistent, true);
+    assert.deepEqual(backups(dir), [result.backup]);
+  });
+  test(`${name}: Start fresh is refused while the file is readable or encryption is unavailable`, async t => {
+    const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, name);
+    fs.writeFileSync(file, safeStorage.encryptString(JSON.stringify(data)));
+    const original = fs.readFileSync(file);
+    const readable = await stores(dir, safeStorage).call(`${prefix}-reset`, data);
+    assert.equal(readable.ok, false); assert.match(readable.error, /can be read again/);
+    safeStorage.available = false;
+    assert.equal((await stores(dir, safeStorage).call(`${prefix}-reset`, data)).ok, false);
+    assert.deepEqual(fs.readFileSync(file), original); assert.deepEqual(backups(dir), []);
+    assert.deepEqual(await stores(dir, safeStorage).call(`${prefix}-reset`, null), { ok: false, error: `Invalid ${prefix} data` });
+  });
+}
+
+test('damaged contents offer only Start fresh; unavailable encryption offers only Try again', t => {
+  const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, 'chats.enc');
+  fs.writeFileSync(file, safeStorage.encryptString('{not json'));
+  const damaged = createSecureStore({ file: () => file, safeStorage, label: 'Chats', platform: 'linux' }).load();
+  assert.deepEqual([damaged.persistent, damaged.canRetry, damaged.canReset], [false, false, true]);
+  assert.match(damaged.error, /The saved chats file is damaged/);
+  const unavailable = createSecureStore({ file: () => file, safeStorage: fakeSafeStorage({ available: false }), label: 'Chats', platform: 'linux' }).load();
+  assert.deepEqual([unavailable.canRetry, unavailable.canReset], [true, false]);
+});
+
+test('repeated Start fresh never overwrites an earlier backup', t => {
+  const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, 'chats.enc');
+  const now = () => new Date(2026, 8, 29, 18, 42, 10); // local time
+  const names = [];
+  for (const bytes of ['first', 'second', 'third']) {
+    fs.writeFileSync(file, bytes);
+    const store = createSecureStore({ file: () => file, safeStorage, label: 'Chats', platform: 'linux', now });
+    store.load(); names.push(store.reset({ sessions: [] }).backup);
+  }
+  assert.deepEqual(names, ['chats.unreadable-20260929-184210.enc', 'chats.unreadable-20260929-184210-2.enc', 'chats.unreadable-20260929-184210-3.enc']);
+  assert.deepEqual(names.map(name => fs.readFileSync(path.join(dir, name), 'utf8')), ['first', 'second', 'third']);
+});
+
+test('a failed rename during Start fresh changes nothing and keeps saving blocked', t => {
+  const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, 'chats.enc');
+  fs.writeFileSync(file, 'unreadable');
+  const fsImpl = { ...fs, renameSync: () => { throw Object.assign(new Error('permission denied'), { code: 'EPERM' }); } };
+  const store = createSecureStore({ file: () => file, safeStorage, label: 'Chats', platform: 'linux', fsImpl });
+  store.load();
+  const result = store.reset({ sessions: [] });
+  assert.equal(result.ok, false); assert.match(result.error, /nothing was changed.*permission denied/);
+  assert.equal(result.backup, undefined); assert.equal(store.backupPath(), null);
+  assert.equal(store.save({ sessions: [] }).ok, false);
+  assert.equal(fs.readFileSync(file, 'utf8'), 'unreadable'); assert.deepEqual(fs.readdirSync(dir), ['chats.enc']);
 });

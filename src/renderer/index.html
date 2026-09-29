@@ -172,7 +172,7 @@
     <aside class="chat-sidebar" aria-label="Chat sessions"><div class="chat-sidebar-heading"><strong>Sessions</strong><span id="chat-count" class="chat-muted">0</span></div><input id="chat-search" class="history-search" placeholder="Search conversations…" aria-label="Search conversations"/><div id="chat-sessions" class="chat-sessions"></div><section class="chat-telemetry" aria-label="Context and generation statistics">
       <div class="chat-context"><canvas id="chat-context-ring" width="104" height="104" role="img" aria-label="Context usage unavailable"></canvas><div><strong id="chat-context-percent">—</strong><span id="chat-context-detail">Context usage</span></div></div>
       <details id="chat-stats-details" open><summary>Last response <span id="chat-stats-kind"></span></summary><dl class="chat-stats-grid"><div><dt>Speed</dt><dd id="chat-stat-speed">—</dd></div><div><dt id="chat-stat-input-label">Input tokens</dt><dd id="chat-stat-input">—</dd></div><div><dt>Output tokens</dt><dd id="chat-stat-output">—</dd></div><div><dt>Cached input</dt><dd id="chat-stat-cache">—</dd></div></dl><div id="chat-stat-timing" class="chat-muted"></div></details>
-    </section><span id="chat-storage" class="chat-muted">Saved locally · encrypted on disk</span></aside>
+    </section><span id="chat-storage" class="chat-muted">Saved locally · encrypted on disk</span><div id="chat-storage-actions" class="storage-recovery" hidden><button class="ghost" id="chat-retry" hidden>Try again</button><button class="ghost" id="chat-reset" hidden>Start fresh…</button><button class="ghost" id="chat-reveal" hidden>Show old file</button></div></aside>
   </main>
 
   <section id="about-view" class="about-view hidden">
@@ -286,9 +286,9 @@
       <h1>Input history</h1>
       <input id="history-search" class="history-search" type="text" placeholder="Search history…" spellcheck="false" />
       <div id="history-list" class="history-list"></div>
+      <div id="history-storage" class="storage-recovery" hidden><span id="history-storage-text" class="chat-muted">Temporary history · not saved to disk</span><button class="ghost" id="history-retry" hidden>Try again</button><button class="ghost" id="history-reset" hidden>Start fresh…</button><button class="ghost" id="history-reveal" hidden>Show old file</button></div>
       <div class="dialog-actions">
         <button class="ghost" id="history-clear">Clear all</button>
-        <span id="history-storage" class="chat-muted" hidden>Temporary history · not saved to disk</span>
         <span class="spacer"></span>
         <button class="ghost" id="history-close">Close</button>
       </div>

@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('tranzl', {
   chatStop: () => ipcRenderer.invoke('chat-stop'),
   chatLoad: () => ipcRenderer.invoke('chat-load'),
   chatSave: (data) => ipcRenderer.invoke('chat-save', data),
+  chatRetry: () => ipcRenderer.invoke('chat-retry'),
+  chatReset: (data) => ipcRenderer.invoke('chat-reset', data),
+  chatRevealBackup: () => ipcRenderer.invoke('chat-reveal-backup'),
   chatAttach: () => ipcRenderer.invoke('chat-attach'),
   onChatEvent: (callback) => ipcRenderer.on('chat-event', (_event, data) => callback(data)),
   translate: (options) => ipcRenderer.invoke('translate', options),
@@ -26,4 +29,7 @@ contextBridge.exposeInMainWorld('tranzl', {
   cancelTranslate: () => ipcRenderer.invoke('cancel-translate'),
   loadHistory: () => ipcRenderer.invoke('history-load'),
   saveHistory: (entries) => ipcRenderer.invoke('history-save', entries),
+  retryHistory: () => ipcRenderer.invoke('history-retry'),
+  resetHistory: (store) => ipcRenderer.invoke('history-reset', store),
+  revealHistoryBackup: () => ipcRenderer.invoke('history-reveal-backup'),
 });

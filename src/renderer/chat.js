@@ -430,20 +430,51 @@
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderStats);
   window.addEventListener('beforeunload', () => persist(true));
   controls();
-  window.tranzl.chatLoad().then(data => {
-    persistent = data.persistent;
-    sessions = Array.isArray(data.sessions) ? data.sessions : [];
-    for (const session of sessions) for (const message of session.messages) {
+  // Saved sessions, with replies that were cut off by the last shutdown marked as interrupted.
+  function savedSessions(data) {
+    const saved = Array.isArray(data.sessions) ? data.sessions : [];
+    for (const session of saved) for (const message of session.messages) {
       if (message.status && !['Stopped', 'Failed', 'Interrupted'].includes(message.status)) message.status = 'Interrupted';
       message.progress = null;
     }
+    return saved;
+  }
+  // Reflects whether chats are saved and which recovery actions apply (see secureStore.js).
+  function showStorage(data) {
+    persistent = data.persistent;
+    el('storage').textContent = persistent ? 'Saved locally · encrypted on disk' : 'Temporary chats · not saved to disk';
+    el('retry').hidden = persistent || !data.canRetry;
+    el('reset').hidden = persistent || !data.canReset;
+    el('storage-actions').hidden = el('retry').hidden && el('reset').hidden && el('reveal').hidden;
+    if (!persistent) notice(data.error || 'Chats will only last until you close the app.');
+  }
+  el('retry').onclick = async () => {
+    const data = await window.tranzl.chatRetry();
+    showStorage(data);
+    if (!data.persistent) return;
+    // Keep conversations started while chats were temporary alongside the saved ones.
+    const saved = savedSessions(data), ids = new Set(saved.map(s => s.id));
+    sessions = [...sessions.filter(s => !ids.has(s.id) && (s.messages.length || s.draft || s.attachments.length)), ...saved];
+    if (!sessions.some(s => s.id === activeId)) activeId = sessions.some(s => s.id === data.activeId) ? data.activeId : sessions[0]?.id;
+    notice(''); clearStatus();
+    if (!sessions.length) newChat(); else { render(); persist(true); }
+  };
+  el('reset').onclick = async () => {
+    if (!confirm('Start fresh? The unreadable saved chats file will be renamed and kept in the Tranzl data folder, not deleted. Chats from now on, including the ones open now, will be saved to a new file.')) return;
+    const result = await window.tranzl.chatReset({ sessions, activeId });
+    if (result.backup) {
+      el('reveal').hidden = false; el('reveal').title = `Kept as ${result.backup}`;
+      showStorage({ persistent: true });
+    }
+    if (result.ok) { notice(''); clearStatus(); } else fail(result.error || 'Could not start fresh.');
+  };
+  el('reveal').onclick = () => window.tranzl.chatRevealBackup();
+  window.tranzl.chatLoad().then(data => {
+    sessions = savedSessions(data);
     activeId = sessions.some(s => s.id === data.activeId) ? data.activeId : sessions[0]?.id;
     ready = true;
     refreshModelInfo();
+    showStorage(data);
     if (!sessions.length) newChat(); else render();
-    if (!persistent) {
-      el('storage').textContent = 'Temporary chats · not saved to disk';
-      notice(data.error || 'Chats will only last until you close the app.');
-    }
   }).catch(err => fail(`Could not load chats: ${err.message}`));
 })();

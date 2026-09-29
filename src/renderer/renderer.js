@@ -409,62 +409,102 @@ function readLegacyKey(key) {
   return value;
 }
 
-async function initSecureStore() {
-  const { store, persistent, error } = await window.tranzl.loadHistory();
-  secureStorePersistent = persistent;
-  // Legacy plaintext data stays in localStorage until it can be saved encrypted.
-  if (!persistent) {
-    const message = error || 'Input history will only last until you close the app.';
-    const label = document.getElementById('history-storage');
-    label.hidden = false; label.title = message;
-    setStatus(message, 'error');
-    return;
+// Adds entries not already present (by text), newest first; a custom prompt already set wins.
+function mergeIntoSecureStore({ sourceHistory, promptHistory, customPrompt }) {
+  if (Array.isArray(sourceHistory)) {
+    const known = new Set(secureStore.sourceHistory.map((e) => e.text));
+    secureStore.sourceHistory = [
+      ...secureStore.sourceHistory,
+      ...sourceHistory.filter((e) => e?.text && !known.has(e.text)),
+    ]
+      .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+      .slice(0, HISTORY_MAX);
   }
-  if (store) {
-    secureStore = {
-      sourceHistory: Array.isArray(store.sourceHistory) ? store.sourceHistory : [],
-      promptHistory: Array.isArray(store.promptHistory) ? store.promptHistory : [],
-      customPrompt: typeof store.customPrompt === 'string' ? store.customPrompt : '',
-    };
+  if (Array.isArray(promptHistory)) {
+    const known = new Set(secureStore.promptHistory);
+    secureStore.promptHistory = [
+      ...secureStore.promptHistory,
+      ...promptHistory.filter((p) => typeof p === 'string' && !known.has(p)),
+    ].slice(0, PROMPT_HISTORY_MAX);
   }
-
-  // One-time migration of old plaintext localStorage data
-  let dirty = false;
-  try {
-    const oldHistory = JSON.parse(readLegacyKey('tranzl.sourceHistory') || 'null');
-    if (Array.isArray(oldHistory) && oldHistory.length) {
-      const known = new Set(secureStore.sourceHistory.map((e) => e.text));
-      secureStore.sourceHistory = [
-        ...secureStore.sourceHistory,
-        ...oldHistory.filter((e) => e?.text && !known.has(e.text)),
-      ]
-        .sort((a, b) => (b.ts || 0) - (a.ts || 0))
-        .slice(0, HISTORY_MAX);
-      dirty = true;
-    }
-  } catch {
-    // unreadable legacy data — just drop it
+  if (typeof customPrompt === 'string' && customPrompt && !secureStore.customPrompt) {
+    secureStore.customPrompt = customPrompt;
   }
-  try {
-    const oldPrompts = JSON.parse(readLegacyKey('tranzl.promptHistory') || 'null');
-    if (Array.isArray(oldPrompts) && oldPrompts.length) {
-      const known = new Set(secureStore.promptHistory);
-      secureStore.promptHistory = [
-        ...secureStore.promptHistory,
-        ...oldPrompts.filter((p) => typeof p === 'string' && !known.has(p)),
-      ].slice(0, PROMPT_HISTORY_MAX);
-      dirty = true;
-    }
-  } catch {
-    // unreadable legacy data — just drop it
-  }
-  const oldCustom = readLegacyKey('tranzl.customPrompt');
-  if (oldCustom) {
-    if (!secureStore.customPrompt) secureStore.customPrompt = oldCustom;
-    dirty = true;
-  }
-  if (dirty) persistSecureStore();
 }
+
+// One-time migration of old plaintext localStorage data. Only called once
+// history can be saved encrypted, so the legacy copy is never dropped unsaved.
+function migrateLegacyHistory() {
+  const parse = (key) => {
+    try {
+      return JSON.parse(readLegacyKey(key) || 'null');
+    } catch {
+      return null; // unreadable legacy data — just drop it
+    }
+  };
+  const legacy = {
+    sourceHistory: parse('tranzl.sourceHistory'),
+    promptHistory: parse('tranzl.promptHistory'),
+    customPrompt: readLegacyKey('tranzl.customPrompt'),
+  };
+  if (!Object.values(legacy).some((v) => (Array.isArray(v) ? v.length : v))) return false;
+  mergeIntoSecureStore(legacy);
+  return true;
+}
+
+const historyStorageEl = document.getElementById('history-storage');
+const historyRetryBtn = document.getElementById('history-retry');
+const historyResetBtn = document.getElementById('history-reset');
+const historyRevealBtn = document.getElementById('history-reveal');
+
+// Reflects whether history is saved and which recovery actions apply (see secureStore.js).
+function showHistoryStorage(result) {
+  secureStorePersistent = result.persistent;
+  const text = document.getElementById('history-storage-text');
+  text.textContent = result.persistent ? 'Saved locally · encrypted on disk' : 'Temporary history · not saved to disk';
+  text.title = result.error || '';
+  historyRetryBtn.hidden = result.persistent || !result.canRetry;
+  historyResetBtn.hidden = result.persistent || !result.canReset;
+  historyStorageEl.hidden = result.persistent && historyRevealBtn.hidden;
+  if (!result.persistent) {
+    setStatus(result.error || 'Input history will only last until you close the app.', 'error');
+  }
+}
+
+async function initSecureStore() {
+  const result = await window.tranzl.loadHistory();
+  showHistoryStorage(result);
+  if (!result.persistent) return;
+  if (result.store) mergeIntoSecureStore(result.store);
+  if (migrateLegacyHistory()) persistSecureStore();
+}
+
+historyRetryBtn.addEventListener('click', async () => {
+  const result = await window.tranzl.retryHistory();
+  showHistoryStorage(result);
+  if (!result.persistent) return;
+  // Keep entries added while history was temporary alongside the saved ones.
+  if (result.store) mergeIntoSecureStore(result.store);
+  migrateLegacyHistory();
+  persistSecureStore();
+  renderHistoryList();
+  window.tranzlStatus('', '');
+});
+
+historyResetBtn.addEventListener('click', async () => {
+  if (!confirm('Start fresh? The unreadable input history file will be renamed and kept in the Tranzl data folder, not deleted. History from now on, including entries from this session, will be saved to a new file.')) return;
+  const result = await window.tranzl.resetHistory(secureStore);
+  if (result.backup) {
+    historyRevealBtn.hidden = false;
+    historyRevealBtn.title = `Kept as ${result.backup}`;
+    showHistoryStorage({ persistent: true });
+    if (migrateLegacyHistory()) persistSecureStore();
+  }
+  if (result.ok) window.tranzlStatus('', '');
+  else setStatus(result.error || 'Could not start fresh.', 'error');
+});
+
+historyRevealBtn.addEventListener('click', () => window.tranzl.revealHistoryBackup());
 
 // Called after each successful translation; deduped, newest first
 function recordSourceHistory(text) {

@@ -14,8 +14,8 @@ ipcMain.handle('clipboard-image', async () => {
 });
 const { prepareContext } = require('./chatCompaction');
 const { validateMessages, openAIMessages, ollamaMessages } = require('./chatProtocol');
-const { createSecureStore } = require('./secureStore');
-require('./chatStore')({ ipcMain, app, safeStorage, dialog, clipboard });
+const { createSecureStore, registerStore } = require('./secureStore');
+require('./chatStore')({ ipcMain, app, safeStorage, dialog, shell });
 
 const LM_STUDIO_BASE_URL = 'http://127.0.0.1:1234';
 const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
@@ -252,17 +252,10 @@ ipcMain.handle('set-theme', (_event, theme) => {
 // Without protected storage, or when the existing file is unreadable, the data
 // stays in memory for the session and the existing file is never overwritten.
 const historyStore = createSecureStore({ file: () => path.join(app.getPath('userData'), 'history.enc'), safeStorage, label: 'Input history' });
-
-ipcMain.handle('history-load', () => {
-  const { data, persistent, error } = historyStore.load();
+registerStore({ ipcMain, shell }, 'history', historyStore, {
   // Legacy format: a bare array of source-history entries
-  const store = Array.isArray(data) ? { sourceHistory: data } : data;
-  return { store: store && typeof store === 'object' ? store : null, persistent, error };
-});
-
-ipcMain.handle('history-save', (_event, store) => {
-  if (!store || typeof store !== 'object' || Array.isArray(store)) return { ok: false, error: 'Invalid history data' };
-  return historyStore.save(store);
+  normalize: data => { const store = Array.isArray(data) ? { sourceHistory: data } : data; return { store: store && typeof store === 'object' ? store : null }; },
+  valid: store => Boolean(store) && typeof store === 'object' && !Array.isArray(store),
 });
 
 ipcMain.handle('choose-backend', (_event, backend) => {

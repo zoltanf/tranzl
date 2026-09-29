@@ -252,8 +252,58 @@ app.whenReady().then(async () => {
     await waitFor(`document.querySelectorAll('.chat-message').length === 2 && document.getElementById('chat-stop').classList.contains('hidden')`);
     assert.deepEqual(saves, []);
 
+    // Recovery: Try again while still locked, then Start fresh keeps this session's chats.
+    let retries = 0, chatResetWith, historyResetWith;
+    const recoverable = { persistent: false, canRetry: true, canReset: true };
+    const reload = async () => {
+      win.webContents.reload(); await new Promise(resolve => win.webContents.once('did-finish-load', resolve));
+      await waitFor(`!document.getElementById('chat-input').disabled`);
+      saves = []; // the previous page's beforeunload save is legitimate
+    };
+    const ask = async text => {
+      await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-input').value=${JSON.stringify(text)}; document.getElementById('chat-input').dispatchEvent(new Event('input')); document.getElementById('chat-send').click()`);
+      await waitFor(`[...document.querySelectorAll('.chat-message')].some(m => m.textContent.includes(${JSON.stringify(text)})) && document.getElementById('chat-stop').classList.contains('hidden')`);
+    };
+    replace('chat-load', () => ({ sessions: [], error: unreadable, ...recoverable }));
+    replace('history-load', () => ({ store: null, error: 'Saved input history could not be read.', ...recoverable }));
+    replace('chat-retry', () => { retries++; return { sessions: [], error: 'Still locked.', ...recoverable }; });
+    replace('chat-reset', (_e, data) => { chatResetWith = data; return { ok: true, backup: 'chats.unreadable-20260929-184210.enc' }; });
+    replace('history-reset', (_e, data) => { historyResetWith = data; return { ok: true, backup: 'history.unreadable-20260929-184210.enc' }; });
+    replace('chat-save', (_e, data) => { saves.push('chat'); saved = structuredClone(data); return { ok: true }; });
+    replace('history-save', () => { saves.push('history'); return { ok: true }; });
+    await reload();
+    const hidden = id => run(`document.getElementById(${JSON.stringify(id)}).hidden`);
+    const until = async (check, message) => { for (let i = 0; i < 100 && !check(); i++) await new Promise(r => setTimeout(r, 20)); assert.ok(check(), message); };
+    assert.deepEqual([await hidden('chat-retry'), await hidden('chat-reset'), await hidden('chat-reveal'), await hidden('chat-storage-actions')], [false, false, true, false]);
+    await ask('Question while locked');
+    await run(`document.getElementById('chat-retry').click()`);
+    await waitFor(`document.getElementById('chat-notice').textContent === 'Still locked.'`);
+    assert.equal(retries, 1); assert.deepEqual(saves, []);
+    await run(`window.confirm = () => true; document.getElementById('chat-reset').click()`);
+    await waitFor(`document.getElementById('chat-storage').textContent === 'Saved locally · encrypted on disk'`);
+    assert.ok(chatResetWith.sessions.some(s => s.messages.some(m => m.content === 'Question while locked')), 'Start fresh saves the temporary session');
+    assert.deepEqual([await hidden('chat-retry'), await hidden('chat-reset'), await hidden('chat-reveal')], [true, true, false]);
+    assert.match(await run(`document.getElementById('chat-reveal').title`), /chats\.unreadable-/);
+    await run(`document.getElementById('chat-new').click()`);
+    await until(() => saves.includes('chat'), 'saving resumes after Start fresh');
+    assert.equal(await hidden('history-storage'), false); assert.equal(await hidden('history-reset'), false);
+    await run(`document.getElementById('history-reset').click()`);
+    await waitFor(`document.getElementById('history-storage-text').textContent === 'Saved locally · encrypted on disk'`);
+    assert.ok(Array.isArray(historyResetWith.sourceHistory)); assert.equal(await hidden('history-reveal'), false);
+
+    // A successful Try again keeps chats started while temporary alongside the saved ones.
+    replace('chat-retry', () => ({ sessions: [{ id: 'saved-1', title: 'Saved earlier', updated: 1, messages: [{ role: 'user', content: 'Earlier question' }], draft: '', attachments: [], effort: 'balanced' }], activeId: 'saved-1', persistent: true }));
+    await reload();
+    await ask('Second question while locked');
+    await run(`document.getElementById('chat-retry').click()`);
+    await waitFor(`document.getElementById('chat-storage').textContent === 'Saved locally · encrypted on disk'`);
+    const titles = await run(`[...document.querySelectorAll('.chat-session-open strong')].map(e => e.textContent)`);
+    assert.ok(titles.includes('Saved earlier') && titles.length === 2, JSON.stringify(titles));
+    await until(() => saved.sessions.some(s => s.id === 'saved-1') && saved.sessions.some(s => s.messages.some(m => m.content === 'Second question while locked')), 'Try again saves both saved and temporary sessions');
+    assert.equal(await run(`document.getElementById('chat-notice').textContent`), '');
+
     assert.deepEqual(errors, []);
-    console.log(`PASS: chat UI, attachments, Markdown sanitization, multi-turn context, drafts, reload, delete, clear and temporary storage. Screenshot: ${path.join(os.tmpdir(), 'tranzl-chat-ui.png')}`);
+    console.log(`PASS: chat UI, attachments, Markdown sanitization, multi-turn context, drafts, reload, delete, clear, temporary storage and recovery. Screenshot: ${path.join(os.tmpdir(), 'tranzl-chat-ui.png')}`);
     app.exit(0);
   } catch (err) { console.error(err); console.error(errors); console.error(await run(`document.getElementById('chat-view').innerHTML`)); app.exit(1); }
 }).finally(() => {});
