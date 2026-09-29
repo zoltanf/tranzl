@@ -61,7 +61,7 @@ The Chat tab uses the backend and model selected in Settings. Each session keeps
 Attach up to 8 files per message, 20 MB per file:
 
 - **Images:** PNG, JPEG, WebP, with previews. Large images are resized to a 1,600-pixel longest edge before inference.
-- **Documents:** PDF, DOC and DOCX. Word text and PDF page text are extracted locally; scanned PDF pages are rendered as images for the model. Document figures embedded alongside readable text and Word formatting are not preserved.
+- **Documents:** PDF, DOC and DOCX. Word text (including legacy Word 97–2003 `.doc`) and PDF page text are extracted locally; scanned PDF pages are rendered as images for the model. Document figures embedded alongside readable text and Word formatting are not preserved.
 - **Spreadsheets:** CSV, TSV, XLS and XLSX. Excel sheets are labeled and converted to readable cell values; macros and formulas are never executed.
 - **Audio:** WAV, MP3, FLAC and M4A files with playback controls. M4A (AAC or Apple Lossless) is converted locally on macOS to mono 16 kHz WAV; both the original file and converted audio must fit the 20 MB limit. Conversion uses a private temporary directory that is removed afterward. Audio inference currently uses the Embedded backend; replies are text. No microphone recording is required.
 - **Text/code:** UTF-8 and UTF-16LE text, Markdown, JSON, source files and more.

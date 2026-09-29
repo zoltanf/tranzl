@@ -10,7 +10,6 @@ const path = require('path');
 const assert = require('assert/strict');
 const XLSX = appRequire('xlsx');
 const { createCanvas } = appRequire('@napi-rs/canvas');
-const { execFileSync } = require('child_process');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-electron-readers-'));
 app.setPath('userData', path.join(root, 'app'));
 async function read(filename) {
@@ -41,11 +40,7 @@ app.whenReady().then(async () => {
       const filename = path.join(root, `data.${type}`); XLSX.writeFile(book, filename);
       assert.match((await read(filename)).content, /42/);
     }
-    const text = path.join(root, 'source.txt'); fs.writeFileSync(text, 'A useful test document.');
-    for (const type of ['doc', 'docx']) {
-      const filename = path.join(root, `data.${type}`); execFileSync('/usr/bin/textutil', ['-convert', type, '-output', filename, text]);
-      assert.match((await read(filename)).content, /useful test document/);
-    }
+    for (const type of ['doc', 'docx']) assert.match((await read(path.join(__dirname, 'fixtures', `synthetic.${type}`))).content, /The meeting is on Friday/);
     for (const codec of ['aac', 'alac']) {
       const source = require('./audio-fixture.cjs').createM4a(root, codec);
       const audio = await read(source);

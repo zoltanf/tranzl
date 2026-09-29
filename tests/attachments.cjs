@@ -62,16 +62,15 @@ test('PDF text is extracted with page labels', async () => {
 test('PDF without text becomes an image for model reading', async () => {
   await fixture('scan.pdf', pdf('1 0 0 rg 20 20 100 100 re f'), f => { assert.equal(f.images.length, 1); assert.equal(f.images[0].mime, 'image/jpeg'); assert.match(f.content, /scanned/); });
 });
-for (const format of ['doc', 'docx']) test(`reads ${format} text locally`, { skip: process.platform !== 'darwin' }, async () => {
-  const { execFileSync } = require('node:child_process');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tranzl-word-'));
-  try {
-    const source = path.join(dir, 'source.txt'), target = path.join(dir, `document.${format}`);
-    await fs.writeFile(source, 'Project notes\nThe meeting is on Friday.');
-    execFileSync('/usr/bin/textutil', ['-convert', format, '-output', target, source]);
-    const result = await readAttachment(target);
-    assert.match(result.content, /Project notes/); assert.match(result.content, /Friday/);
-  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+// Synthetic fixtures (generated once with macOS textutil) keep Word reading tests portable.
+for (const format of ['doc', 'docx']) test(`reads ${format} text locally`, async () => {
+  const result = await readAttachment(path.join(__dirname, 'fixtures', `synthetic.${format}`));
+  assert.match(result.content, /Project notes/); assert.match(result.content, /The meeting is on Friday\./);
+  assert.match(result.content, /Grüße aus Wien – “quoted” text\./); assert.match(result.content, /Privacy\s+Local/);
+  assert.doesNotMatch(result.content, /\r/);
+});
+test('damaged legacy DOC fails clearly', async () => {
+  await assert.rejects(fixture('broken.doc', 'not a Word document', () => {}), /could not read this \.doc file/);
 });
 
 for (const rows of [10000, 10001, 10002]) test(`spreadsheet row limit at ${rows} rows`, async () => {

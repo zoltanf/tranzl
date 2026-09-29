@@ -108,9 +108,10 @@ async function readAttachment(filename) {
     const result = await require('mammoth').extractRawText({ buffer: bytes });
     file.content = boundedText(result.value); file.summary = 'Word text extracted';
   } else if (extension === 'doc') {
-    if (process.platform !== 'darwin') throw new Error('legacy .doc reading requires macOS; save as .docx');
-    const { stdout } = await promisify(execFile)('/usr/bin/textutil', ['-format', 'doc', '-convert', 'txt', '-stdout', filename], { timeout: 20000, maxBuffer: MAX_TEXT * 4 });
-    file.content = boundedText(stdout); file.summary = 'Word text extracted';
+    let document;
+    try { document = await new (require('word-extractor'))().extract(bytes); }
+    catch { throw new Error('could not read this .doc file; it may be damaged or protected. Save it as .docx and attach it again'); }
+    file.content = boundedText(document.getBody({ filterUnicode: false })); file.summary = 'Word text extracted';
   } else if (['xls', 'xlsx'].includes(extension)) {
     const XLSX = require('xlsx');
     const book = XLSX.read(bytes, { type: 'buffer', cellDates: true, cellFormula: false, bookVBA: false, sheetRows: 10001 });
