@@ -27,7 +27,7 @@ test('cancellation from a callback stops later deltas and completion', async () 
 
 function fixture(t, mode = 'normal') {
   const children = [];
-  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', projectorPath: 'fixture-projector.gguf', startupTimeoutMs: mode === 'hang' ? 150 : 5000, shutdownTimeoutMs: 150,
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', projectorPath: 'fixture-projector.gguf', startupTimeoutMs: ['hang', 'quiet'].includes(mode) ? 300 : 5000, shutdownTimeoutMs: 150,
     spawnProcess: (_binary, args, options) => {
       const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), mode, ...args], options);
       children.push({ child, args }); return child;
@@ -120,4 +120,24 @@ test('shutdown cancels asset preparation and drains queued work without spawning
   await preparing; await runtime.stop();
   assert.ok((await results).every(result => result.status === 'rejected'));
   assert.equal(spawned, false); assert.equal(runtime.state().pid, null);
+});
+
+test('the API key is never in argv and its private file is removed once the server listens', async t => {
+  const { runtime, children } = fixture(t);
+  await runtime.chat(options('hello'));
+  const { args } = children[0], keyFile = args[args.indexOf('--api-key-file') + 1];
+  assert.ok(!args.includes('--api-key') && keyFile, 'key must be passed by file');
+  assert.ok(args.every(arg => !/^[0-9a-f]{64}$/.test(arg)), 'no key-like value in argv');
+  assert.equal(require('node:fs').existsSync(path.dirname(keyFile)), false, 'key folder removed after startup');
+});
+test('nothing is sent to the port until our own server announces it is listening', async t => {
+  const fs = require('node:fs'), os = require('node:os');
+  const log = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-requests-')), 'requests.txt');
+  process.env.TRANZL_FIXTURE_REQUESTS = log;
+  t.after(() => { delete process.env.TRANZL_FIXTURE_REQUESTS; fs.rmSync(path.dirname(log), { recursive: true, force: true }); });
+  const { runtime, children } = fixture(t, 'quiet');
+  await assert.rejects(runtime.chat(options('hello')));
+  assert.equal(fs.existsSync(log) ? fs.readFileSync(log, 'utf8') : '', '', 'no request (and no key) before the listening line');
+  const keyFile = children[0].args[children[0].args.indexOf('--api-key-file') + 1];
+  assert.equal(fs.existsSync(path.dirname(keyFile)), false, 'key folder removed after a failed start');
 });

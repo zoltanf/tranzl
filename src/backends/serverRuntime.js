@@ -1,6 +1,9 @@
 // Managed inference process. Assets are prepared by an injected acquisition
 // layer inside the queue; each instance owns one child and all request cleanup.
 const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const net = require('node:net');
 const crypto = require('node:crypto');
 const { setTimeout: delay } = require('node:timers/promises');
@@ -82,8 +85,14 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     const port = await freePort();
     signal.throwIfAborted();
     key = crypto.randomBytes(32).toString('hex');
+    // Pass the key in a private file rather than argv, which other local processes can read.
+    // The server reads it at startup; the file is removed once it is listening (or fails).
+    const keyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-server-')), keyFile = path.join(keyDir, 'api-key');
+    const removeKey = () => fs.rmSync(keyDir, { recursive: true, force: true });
+    fs.writeFileSync(keyFile, key + '\n', { mode: 0o600 });
+    const url = `http://127.0.0.1:${port}`;
     const args = ['--model', modelPath, '--host', '127.0.0.1', '--port', String(port),
-      '--api-key', key, '--ctx-size', String(contextSize), '--parallel', '1', '--jinja',
+      '--api-key-file', keyFile, '--ctx-size', String(contextSize), '--parallel', '1', '--jinja',
       '--no-webui', '--offline', '--no-context-shift', '--reasoning-format', 'deepseek'];
     if (media) args.push('--mmproj', projectorPath);
     else args.push('--no-mmproj');
@@ -91,8 +100,13 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     if (swaFullCache) args.push('--swa-full');
     processAbort = new AbortController();
     const ownerAbort = processAbort;
-    const current = spawnProcess(binary, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    let current;
+    try { current = spawnProcess(binary, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); }
+    catch (error) { removeKey(); throw error; }
     child = current; mediaLoaded = media;
+    // Our child logs this only after binding the port, so no request (and no key) can reach
+    // another process that took the port between freePort() and spawn.
+    let heard; const listening = new Promise(resolve => { heard = resolve; });
     // Retain only recognized compute counters, never raw runtime logs/prompts.
     diagnostics = { requestedGpu: gpu, swaFullCache };
     for (const stream of [current.stdout, current.stderr]) {
@@ -100,6 +114,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       stream?.on('data', chunk => {
         const lines = (tail + chunk.toString()).split('\n'); tail = lines.pop().slice(-1024);
         for (const line of lines) {
+          if (line.includes(`listening on ${url}`)) heard();
           const layers = line.match(/offloaded (\d+)\/(\d+) layers to GPU/);
           if (layers) { diagnostics.offloadedLayers = Number(layers[1]); diagnostics.totalLayers = Number(layers[2]); }
           const backend = line.match(/\b(Metal\d*|CUDA\d*|Vulkan\d*|CPU)(?:_Mapped)?\s+model buffer size/);
@@ -116,10 +131,16 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       current.once('error', finish); current.once('exit', () => finish());
     });
     const startup = AbortSignal.any([signal, ownerAbort.signal, AbortSignal.timeout(startupTimeoutMs)]);
-    const url = `http://127.0.0.1:${port}`;
     onStatus({ state: 'loading', media, pid: current.pid });
     report(media ? 'Loading image/audio model…' : 'Loading embedded model…');
     try {
+      await new Promise((resolve, reject) => {
+        const stop = () => reject(startup.reason);
+        if (startup.aborted) stop();
+        startup.addEventListener('abort', stop, { once: true });
+        listening.then(() => { startup.removeEventListener('abort', stop); resolve(); });
+      });
+      removeKey();
       for (;;) {
         startup.throwIfAborted();
         try {
@@ -130,7 +151,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
         await delay(50, undefined, { signal: startup });
       }
       onStatus({ state: 'ready', media, pid: current.pid });
-    } catch (error) { await terminate(); throw error; }
+    } catch (error) { removeKey(); await terminate(); throw error; }
   }
 
   function enqueue(signal, run) {

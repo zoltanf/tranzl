@@ -1,10 +1,13 @@
 // Tiny authenticated HTTP child for lifecycle tests; never used by the app.
 const http = require('node:http');
+const fs = require('node:fs');
 const args = process.argv.slice(3), arg = name => args[args.indexOf(name) + 1];
+const key = args.includes('--api-key-file') ? fs.readFileSync(arg('--api-key-file'), 'utf8').trim() : undefined;
 if (process.argv[2] === 'ignore-term') process.on('SIGTERM', () => {});
 if (process.argv[2] === 'hang') { setInterval(() => {}, 1000); }
 else http.createServer(async (req, res) => {
-  if (req.headers.authorization !== `Bearer ${arg('--api-key')}`) { res.writeHead(401).end(); return; }
+  if (process.env.TRANZL_FIXTURE_REQUESTS) fs.appendFileSync(process.env.TRANZL_FIXTURE_REQUESTS, req.url + '\n');
+  if (req.headers.authorization !== `Bearer ${key}`) { res.writeHead(401).end(); return; }
   if (req.url === '/health') { res.end('{}'); return; }
   if (req.url === '/slots') {
     if (process.argv[2] === 'missing-slots') { res.writeHead(404).end(); return; }
@@ -21,4 +24,7 @@ else http.createServer(async (req, res) => {
     const timer = setTimeout(() => res.end('data: [DONE]\n\n'), 5000);
     res.on('close', () => clearTimeout(timer));
   } else res.end('data: [DONE]\n\n');
-}).listen(Number(arg('--port')), '127.0.0.1');
+}).listen(Number(arg('--port')), '127.0.0.1', () => {
+  // Like llama-server; 'quiet' never announces itself, so the runtime must not contact it.
+  if (process.argv[2] !== 'quiet') console.error(`srv  llama_server: listening on http://127.0.0.1:${arg('--port')}`);
+});
