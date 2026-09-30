@@ -1,0 +1,3 @@
+# Byte-exact files: hashes are pinned or recorded in sidecars, so no line-ending conversion.
+src/backends/llama.cpp-LICENSE -text
+tests/fixtures/** -text
