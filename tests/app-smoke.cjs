@@ -71,9 +71,12 @@ test('the real app serves IPC to its page, cannot navigate away and quits cleanl
     if (process.env.TRANZL_EXPECT_EMBEDDED === 'available') assert.equal(setup.embeddedUnavailable, null);
 
     const home = await page.evaluate('location.href');
-    for (const url of ['https://example.com/', path.join(profile, 'dropped.html')]) {
-      if (!url.startsWith('https:')) fs.writeFileSync(url, '<h1>dropped</h1>');
-      await page.evaluate(`location.href = ${JSON.stringify(url.startsWith('https:') ? url : require('node:url').pathToFileURL(url).href)}; true`).catch(() => {});
+    // A non-https URL, so the lock is tested without the app handing anything to the system browser
+    // (on CI that launched Chrome, whose crash handler then held this test's pipes open).
+    for (const url of ['http://127.0.0.1:9/', path.join(profile, 'dropped.html')]) {
+      const web = /^https?:/.test(url);
+      if (!web) fs.writeFileSync(url, '<h1>dropped</h1>');
+      await page.evaluate(`location.href = ${JSON.stringify(web ? url : require('node:url').pathToFileURL(url).href)}; true`).catch(() => {});
       await sleep(1000);
       assert.equal(await page.evaluate('location.href'), home, `navigation to ${url} must be blocked`);
     }
