@@ -1,6 +1,6 @@
 # Unified inference and multiplatform requirements
 
-Updated: 2026-09-29. Status: Stages A–C passed on macOS ARM64; native target validation (Stage D onward) remains pending. See [agent handoff](agent-handoff.md) for the continuation checkpoint.
+Updated: 2026-09-30. Status: Stages A–D passed (A–C on macOS ARM64; D as CPU validation in CI on Windows x64, Ubuntu 22.04/24.04 x64 and Ubuntu 24.04 ARM64). Ubuntu 22.04 ARM64 is external-backends-only. Stage E onward remains pending; nothing beyond macOS is released. See [agent handoff](agent-handoff.md) for the continuation checkpoint.
 
 ## Objective and precedence
 

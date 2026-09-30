@@ -122,3 +122,20 @@ Stage C (portable foundations) changed runtime selection, packaging, secure stor
 The differences are within run-to-run noise and far below the investigation thresholds. Evidence: [source](runtime-evidence/2026-09-29/stage-c-source.json), [packaged](runtime-evidence/2026-09-29/stage-c-packaged.json). Only Mac ARM64 is validated; Windows and Linux (x64 and ARM64) remain Stage D.
 
 The audio case in the Stage A–C reports used a macOS `say` clip that was never committed. Later runs use the committed public-domain LJ Speech clip `tests/fixtures/speech.wav`, with its expected words and checksum in `speech.json`. It passed the full 17-case Mac run at the same checkpoint.
+
+## Stage D native CPU validation
+
+GitHub-hosted runners (4 vCPU, 16 GB), workflow run 36778077405 at `a4a2b19`, 2026-09-30. Each target built natively from a clean `npm ci`, passed unit and Electron tests, was packaged, passed the mocked UI suites on the packaged resources and the packaged-app smoke test (real executable: IPC, navigation lock, embedded availability, clean quit), then downloaded the pinned model with Tranzl's verified downloader, translated through the packaged app, and ran the 17-case harness from a packaged evaluation app outside the checkout, with the app acquiring runtime and projector itself. CPU only: hosted runners have no GPU.
+
+| Runner | CPU | Cases | Warm generation | First token | Cold load | Peak memory | Near-limit compaction |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Windows Server 2025 x64 | AMD EPYC 9V74 | 17/17 | 7.3 tok/s | 142 ms | 17.5 s | 6.4 GiB (working set, 5 s samples) | 13 min |
+| Ubuntu 22.04 x64 | Intel Xeon Platinum 8573C | 17/17 | 5.0 tok/s | 210 ms | 11.8 s | 8.1 GiB (summed RSS, 250 ms) | 8 min |
+| Ubuntu 24.04 x64 | Intel Xeon Platinum 8573C | 17/17 | 5.2 tok/s | 203 ms | 11.0 s | 8.1 GiB | 8 min |
+| Ubuntu 24.04 ARM64 | (not reported by the runner) | 17/17 | 11.2 tok/s | 93 ms | 9.3 s | 8.8 GiB | 14 min |
+| Ubuntu 22.04 ARM64 | – | no inference | – | – | – | – | – |
+| macOS 15 ARM64 (hosted) | – | build, tests and packaged smoke only | – | – | – | – | – |
+
+Ubuntu 22.04 ARM64: the upstream runtime needs glibc 2.38 (22.04 has 2.35), so the job asserts that the packaged app reports embedded inference unavailable with that reason; LM Studio/Ollama remain usable. The hosted Mac has no Metal access, so Mac inference evidence remains the local Stage C run. Throughput depends on the CPU GitHub assigns: the same Ubuntu 24.04 x64 job measured 7.9 tok/s on an AMD EPYC 7763 in an earlier run. Memory methods differ by OS and are not directly comparable. Evidence: `runtime-evidence/2026-09-30/ci-*-report.json` (synthetic prompts only) and `ci-*-runtime-libraries.txt` (`ldd` output and highest `GLIBC_` symbol: x64 2.34, ARM64 2.38; no missing libraries on supported systems).
+
+Not shown by this stage: GPU acceleration on Windows/Linux, behaviour on 8 GB machines, Linux desktop keyrings (CI forces the basic store and checks that Tranzl refuses to persist with it), clean consumer installs, upgrades and desktop integration.

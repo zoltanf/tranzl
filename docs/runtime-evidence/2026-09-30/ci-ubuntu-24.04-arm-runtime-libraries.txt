@@ -1,0 +1,18 @@
+== ldd llama-server
+	linux-vdso.so.1 (0x0000ff9ba04bc000)
+	libllama-server-impl.so => /home/runner/work/_temp/runtime/llama-b11158/./libllama-server-impl.so (0x0000ff9b9fe90000)
+	libstdc++.so.6 => /lib/aarch64-linux-gnu/libstdc++.so.6 (0x0000ff9b9fc00000)
+	libgcc_s.so.1 => /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x0000ff9b9fbc0000)
+	libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000ff9b9fa00000)
+	/lib/ld-linux-aarch64.so.1 (0x0000ff9ba0480000)
+	libllama-common.so.0 => /home/runner/work/_temp/runtime/llama-b11158/./libllama-common.so.0 (0x0000ff9b9f5a0000)
+	libmtmd.so.0 => /home/runner/work/_temp/runtime/llama-b11158/./libmtmd.so.0 (0x0000ff9b9f3f0000)
+	libllama.so.0 => /home/runner/work/_temp/runtime/llama-b11158/./libllama.so.0 (0x0000ff9b9f050000)
+	libggml.so.0 => /home/runner/work/_temp/runtime/llama-b11158/./libggml.so.0 (0x0000ff9b9f020000)
+	libggml-base.so.0 => /home/runner/work/_temp/runtime/llama-b11158/./libggml-base.so.0 (0x0000ff9b9ef40000)
+	libssl.so.3 => /lib/aarch64-linux-gnu/libssl.so.3 (0x0000ff9b9ee70000)
+	libcrypto.so.3 => /lib/aarch64-linux-gnu/libcrypto.so.3 (0x0000ff9b9e9e0000)
+	libm.so.6 => /lib/aarch64-linux-gnu/libm.so.6 (0x0000ff9b9e930000)
+	libgomp.so.1 => /lib/aarch64-linux-gnu/libgomp.so.1 (0x0000ff9b9e8b0000)
+== highest GLIBC symbol version
+GLIBC_2.38
