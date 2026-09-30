@@ -35,17 +35,23 @@ if (args.offline) {
 app.on('window-all-closed', () => {});
 const report = { date: new Date().toISOString(), backend: args.backend, platform: process.platform, arch: process.arch,
   os: os.release(), cpu: os.cpus()[0]?.model, ramBytes: os.totalmem(), electron: process.versions.electron,
-  node: process.versions.node, contextSize: 8192, requestTimeoutSeconds: Number(args['request-timeout'] || 90), cases: [], memoryMethod: 'Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.' };
+  node: process.versions.node, contextSize: 8192, requestTimeoutSeconds: Number(args['request-timeout'] || 90), cases: [], memoryMethod: process.platform === 'win32' ? 'Peak summed working set of harness and descendants sampled every 5 s (CIM); short peaks between samples can be missed; includes Electron overhead.' : 'Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.' };
 let engine, memoryTimer, peakRssKiB = 0, lastResult = null;
 async function digest(file) {
   const hash = crypto.createHash('sha256');
   for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
   return hash.digest('hex');
 }
+// [pid, parent pid, resident KiB] for every process.
+function processTable() {
+  if (process.platform !== 'win32') return execFileSync('ps', ['-axo', 'pid=,ppid=,rss='], { encoding: 'utf8' });
+  return execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+    'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId) $([math]::Round($_.WorkingSetSize / 1024))" }'],
+  { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+}
 function sampleMemory() {
-  if (process.platform === 'win32') return; // Native Windows sampler is a later portability task.
   try {
-    const rows = execFileSync('ps', ['-axo', 'pid=,ppid=,rss='], { encoding: 'utf8' }).trim().split('\n').map(line => line.trim().split(/\s+/).map(Number));
+    const rows = processTable().trim().split(/\r?\n/).map(line => line.trim().split(/\s+/).map(Number));
     const owned = new Set([process.pid]); let changed;
     do { changed = false; for (const [pid, parent] of rows) if (owned.has(parent) && !owned.has(pid)) { owned.add(pid); changed = true; } } while (changed);
     peakRssKiB = Math.max(peakRssKiB, rows.reduce((sum, [pid, , rss]) => sum + (owned.has(pid) ? rss : 0), 0));
@@ -113,7 +119,8 @@ app.whenReady().then(async () => {
     } else engine = createServerRuntime({ binary: args.binary, modelPath: args.model, projectorPath: args.projector,
       swaFullCache: !args['compact-cache'],
       onStatus: status => console.log(`Runtime ${status.state} (${status.media ? 'media' : 'text'})`) });
-    memoryTimer = setInterval(sampleMemory, 250); sampleMemory();
+    // Each Windows sample runs PowerShell (~1 s), so sample less often there.
+    memoryTimer = setInterval(sampleMemory, process.platform === 'win32' ? 5000 : 250); sampleMemory();
     const started = performance.now(); await engine.load(); report.coldLoadSeconds = (performance.now() - started) / 1000;
     report.runtimeState = engine.state?.();
     await check('translation', async () => { const result = await ask(user('Translate into German: The blue bicycle is beside the garden gate. Output only the translation.')); assert.match(result.output, /Fahrrad/i); return result; });
