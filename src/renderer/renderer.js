@@ -796,6 +796,8 @@ function setChoicesDisabled(disabled) {
   for (const btn of [chooseLocalBtn, chooseLmStudioBtn, chooseOllamaBtn]) {
     btn.disabled = disabled;
   }
+  // Embedded inference can be unavailable on this system (e.g. an older Linux)
+  if (setupInfo?.embeddedUnavailable) chooseLocalBtn.disabled = true;
 }
 
 function showOverlay({ cancellable }) {
@@ -914,11 +916,15 @@ async function init() {
   setupInfo = await window.tranzl.getSetup();
   modelLoadState = setupInfo.modelState;
   themeEl.value = setupInfo.theme ?? 'system';
-  chooseLocalDescEl.textContent =
+  chooseLocalDescEl.textContent = setupInfo.embeddedUnavailable ||
     `Downloads ${setupInfo.modelLabel.replace(' (embedded)', '')} (${setupInfo.downloadSize}) once and runs fully inside Tranzl. No other apps needed.`;
+  if (setupInfo.embeddedUnavailable) {
+    document.getElementById('choose-local-title').textContent = 'Embedded model (not available on this system)';
+    chooseLocalBtn.disabled = true;
+  }
 
-  if (!setupInfo.backend) {
-    // First run: ask the user how translations should run
+  if (!setupInfo.backend || (setupInfo.backend === 'local' && setupInfo.embeddedUnavailable)) {
+    // First run (or embedded chosen on a system that cannot run it): ask how translations should run
     setStatus('Waiting for setup…');
     showOverlay({ cancellable: false });
   } else if (setupInfo.backend === 'local' && !setupInfo.modelReady) {

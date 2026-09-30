@@ -1,6 +1,7 @@
 // Maintainer tool: pins one upstream llama.cpp release archive in runtime-manifest.json.
 // Downloads it through Tranzl's verified downloader, checked against GitHub's published
-// SHA-256, and records the server, every shared library and the license with their hashes.
+// SHA-256, and records the server, every shared library and the license with their hashes
+// (and, on Linux, the minimum glibc the binaries require).
 // Pinning is not validation: a target counts as supported only after its native checks pass.
 //   node scripts/pin-runtime.cjs <target> [--check]   e.g. linux-x64; --check compares only
 const fs = require('node:fs');
@@ -41,8 +42,11 @@ if (!TARGETS[target]) throw new Error(`target must be one of ${Object.keys(TARGE
     if (!files[executable]) throw new Error(`${executable} not found at the archive root`);
     const format = name.endsWith('.zip') ? 'zip' : 'tar.gz';
     const [osName, arch] = target.split('-');
+    // Linux binaries need at least the newest GLIBC_x.y symbol version they reference.
+    const byVersion = (a, b) => a.split('.').map(Number).reduce((order, n, i) => order || n - (Number(b.split('.')[i]) || 0), 0) || a.split('.').length - b.split('.').length;
+    const minGlibc = osName === 'linux' ? Object.keys(files).flatMap(file => [...fs.readFileSync(path.join(dir, file), 'latin1').matchAll(/GLIBC_(\d+(?:\.\d+)+)/g)].map(match => match[1])).sort(byVersion).at(-1) : undefined;
     const entry = { os: osName, arch, compute: TARGETS[target].compute, ...archive, archive: { format, root }, executable,
-      notices: Object.keys(files).filter(file => /^LICENSE/.test(file)), files };
+      ...(minGlibc && { minGlibc }), notices: Object.keys(files).filter(file => /^LICENSE/.test(file)), files };
     if (flag === '--check') {
       const same = JSON.stringify(entry) === JSON.stringify(manifest.targets[target]);
       console.log(`${target}: ${same ? 'matches the pinned entry' : 'DIFFERS from the pinned entry'}`);

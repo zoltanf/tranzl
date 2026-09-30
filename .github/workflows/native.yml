@@ -35,7 +35,9 @@ jobs:
           - { name: Windows x64, runner: windows-2025, inference: true }
           - { name: Ubuntu 22.04 x64, runner: ubuntu-22.04, inference: true }
           - { name: Ubuntu 24.04 x64, runner: ubuntu-24.04, inference: true }
-          - { name: Ubuntu 22.04 ARM64, runner: ubuntu-22.04-arm, inference: true }
+          # The upstream ARM64 runtime needs glibc 2.38; 22.04 has 2.35, so embedded
+          # inference must be reported unavailable there (LM Studio/Ollama still work).
+          - { name: Ubuntu 22.04 ARM64, runner: ubuntu-22.04-arm, inference: false, embedded: unsupported }
           - { name: Ubuntu 24.04 ARM64, runner: ubuntu-24.04-arm, inference: true }
     defaults:
       run:
@@ -106,8 +108,17 @@ jobs:
           app=$(node -p "require('path').resolve('dist', 'Tranzl-' + process.platform + '-' + process.arch, process.platform === 'darwin' ? 'Tranzl.app/Contents/Resources/app' : 'resources/app')")
           TRANZL_APP_ROOT="$app" $XVFB npm run test:electron
 
+      - name: Embedded inference is reported unavailable (unsupported systems)
+        if: matrix.embedded == 'unsupported'
+        run: |
+          node -e "
+            const { availability } = require('./src/backends/embeddedAssets'), result = availability();
+            console.log(JSON.stringify(result));
+            if (result.available || !/needs glibc [0-9.]+ or newer/.test(result.reason)) process.exit(1);
+          "
+
       - name: Runtime library requirements (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.embedded != 'unsupported'
         run: |
           mkdir -p "$RUNNER_TEMP/runtime" "$RUNNER_TEMP/evidence"
           curl -fsSL "$(node -p "require('./src/backends/embeddedAssets').runtimeFor().url")" | tar -xz -C "$RUNNER_TEMP/runtime"

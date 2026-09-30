@@ -23,10 +23,31 @@ const EXTRACTORS = {
   'tar.gz': (archive, dest, signal) => promisify(execFile)(tar(), ['-xzf', archive, '-C', dest], { signal, windowsHide: true }),
   zip: (archive, dest, signal) => promisify(execFile)(tar(), ['-xf', archive, '-C', dest], { signal, windowsHide: true }),
 };
+// Linux runtimes need at least the glibc they were built against (pin-runtime.cjs records it).
+let systemGlibc;
+const glibcVersion = () => (systemGlibc ??= (process.platform === 'linux' && process.report?.getReport?.().header?.glibcVersionRuntime) || null);
+function atLeast(have, need) {
+  const [a, b] = [have, need].map(version => version.split('.').map(Number));
+  for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  return true;
+}
+function unsupportedReason(runtime, glibc) {
+  if (!runtime.minGlibc || (glibc && atLeast(glibc, runtime.minGlibc))) return null;
+  return glibc
+    ? `Embedded inference on this system needs glibc ${runtime.minGlibc} or newer (for example Ubuntu 24.04); this system has ${glibc}. Use LM Studio or Ollama instead.`
+    : `Embedded inference needs a glibc-based Linux system (glibc ${runtime.minGlibc} or newer). Use LM Studio or Ollama instead.`;
+}
 function runtimeFor(target = `${process.platform}-${process.arch}`) {
   const runtime = manifest.targets[target];
   if (!runtime) throw new Error(`Embedded inference is not available for ${target} yet. Use an external local backend.`);
+  if (target === `${process.platform}-${process.arch}`) {
+    const reason = unsupportedReason(runtime, glibcVersion());
+    if (reason) throw new Error(reason);
+  }
   return runtime;
+}
+function availability() {
+  try { runtimeFor(); return { available: true }; } catch (error) { return { available: false, reason: error.message }; }
 }
 function paths(dir, target) {
   const runtime = runtimeFor(target);
@@ -77,4 +98,4 @@ async function verifyRuntime(dir, files, signal) {
   }
   return true;
 }
-module.exports = { MODEL, PROJECTOR, VERSION, manifest, archiveFormats: Object.keys(EXTRACTORS), runtimeFor, paths, prepare, verifyRuntime, downloadModel: ({ dirPath, ...options }) => downloadVerified(MODEL, path.join(dirPath, MODEL.filename), options) };
+module.exports = { MODEL, PROJECTOR, VERSION, manifest, archiveFormats: Object.keys(EXTRACTORS), runtimeFor, unsupportedReason, availability, paths, prepare, verifyRuntime, downloadModel: ({ dirPath, ...options }) => downloadVerified(MODEL, path.join(dirPath, MODEL.filename), options) };

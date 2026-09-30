@@ -9,6 +9,7 @@ function service() {
 module.exports = {
   MODEL_LABEL: 'Gemma 4 E4B (embedded)', DOWNLOAD_SIZE_TEXT: '~4.6 GB',
   isReady: modelPath => Boolean(modelPath) && require('node:fs').existsSync(modelPath),
+  availability: () => require('./embeddedAssets').availability(),
   modelState: () => backend?.modelState() || { state: 'idle' },
   download: options => require('./embeddedAssets').downloadModel(options),
   preload: (...args) => service().preload(...args),

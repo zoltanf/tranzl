@@ -228,6 +228,8 @@ ipcMain.handle('get-setup', () => ({
   modelReady: local.isReady(settings.localModelPath),
   modelLabel: local.MODEL_LABEL,
   downloadSize: local.DOWNLOAD_SIZE_TEXT,
+  // Why embedded inference cannot run on this system (e.g. too old a glibc), or null.
+  embeddedUnavailable: local.availability().reason ?? null,
   // Load state of the embedded model ('idle'|'loading'|'ready'|'error') so
   // the renderer shows the right status even if it missed earlier events
   modelState: local.modelState().state,
@@ -262,6 +264,8 @@ ipcMain.handle('choose-backend', (_event, backend) => {
   if (!['lmstudio', 'local', 'ollama'].includes(backend)) {
     return { ok: false, error: `unknown backend: ${backend}` };
   }
+  const { reason } = backend === 'local' ? local.availability() : {};
+  if (reason) return { ok: false, error: reason };
   saveSettings({ backend });
   return { ok: true };
 });
@@ -274,6 +278,8 @@ ipcMain.handle('download-model', async (event) => {
   };
 
   if (downloadInFlight) return { ok: false, error: 'download already running' };
+  const { reason } = local.availability();
+  if (reason) return { ok: false, error: reason }; // never download a model this system cannot run
   downloadInFlight = true;
 
   // Progress fires very frequently — throttle events to ~5/s

@@ -20,7 +20,7 @@ const handlers = {
   'translate': (event, options) => { lastTranslation = options; translationSender = event.sender; return { ok: true, translation: 'Translated image text', model: options.model, stats }; },
   'chat-model-info': () => ({ contextSize: 8192 }),
   'attachment-capabilities': () => ({ maxFiles: 8, maxBytes: 20 * 1024 * 1024, unsupported: ['Apple Lossless (ALAC) M4A'] }),
-  'get-setup': () => ({ backend: 'lmstudio', theme: 'dark', modelReady: false, modelLabel: 'Test model' }),
+  'get-setup': () => ({ backend: 'lmstudio', theme: 'dark', modelReady: false, modelLabel: 'Test model', embeddedUnavailable: 'Embedded inference on this system needs glibc 2.38 or newer (for example Ubuntu 24.04); this system has 2.35. Use LM Studio or Ollama instead.' }),
   'list-models': () => ({ ok: true, models: ['Local test model'] }),
   'history-load': () => ({ store: null, persistent: true }), 'history-save': () => ({ ok: true }),
   'chat-load': () => ({ ...saved, persistent: true }),
@@ -59,6 +59,10 @@ app.whenReady().then(async () => {
     await waitFor(`!document.getElementById('chat-input').disabled`);
     assert.equal(await run(`document.querySelector('#tab-chat #chat-new') !== null && document.querySelector('#tab-chat #chat-clear') !== null`), true);
     await waitFor(`document.getElementById('chat-attach').title.includes('Not supported on this computer: Apple Lossless (ALAC) M4A')`);
+    // Embedded inference this system cannot run is explained and cannot be chosen.
+    assert.equal(await run(`document.getElementById('choose-local').disabled`), true);
+    assert.match(await run(`document.getElementById('choose-local-desc').textContent`), /needs glibc 2\.38 or newer/);
+    assert.match(await run(`document.getElementById('choose-local-title').textContent`), /not available on this system/);
     assert.match(await run(`document.getElementById('chat-attach').title`), /up to 8 files, 20 MB each/);
     assert.equal(await run(`document.getElementById('source').title`), `${process.platform === 'darwin' ? '⌘↩' : 'Ctrl+Enter'} runs immediately`);
     await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-attach').click()`);
@@ -181,13 +185,24 @@ app.whenReady().then(async () => {
     const thinkingEvent = { requestId: lastRequest.requestId, type: 'thinking', delta: 'First thought. ' };
     win.webContents.send('chat-event', thinkingEvent);
     await waitFor(`!!document.querySelector('details[data-message] summary')`);
-    // Follow the bottom, as while reading a streaming reply, so the summary position is settled.
-    await run(`document.getElementById('chat-messages').scrollTop = 1e9`);
-    await run(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
-    const point = await run(`(() => { const r = document.querySelector('details[data-message] summary').getBoundingClientRect(); return { x: Math.round(r.x + 20), y: Math.round(r.y + r.height / 2) }; })()`);
-    // Printed only if this step fails, to diagnose environments where the click is lost.
+    // Printed if this step fails, to diagnose environments where the click is lost.
     await run(`window.__clickLog = []; for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'toggle', 'scroll']) document.addEventListener(t, e => window.__clickLog.push([t, e.target.tagName || 'document', document.getElementById('chat-messages').scrollTop]), true)`);
-    win.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...point });
+    // Press the summary while following the bottom, as when reading a streaming reply. What
+    // is under test is movement *during* the press, so a layout shift before the press lands
+    // (seen on slow hosted runners) is released and retried rather than counted.
+    let point;
+    for (let attempt = 1; ; attempt++) {
+      await run(`document.getElementById('chat-messages').scrollTop = 1e9`);
+      await run(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
+      point = await run(`(() => { const r = document.querySelector('details[data-message] summary').getBoundingClientRect(); return { x: Math.round(r.x + 20), y: Math.round(r.y + r.height / 2) }; })()`);
+      await run(`window.__clickLog.length = 0`);
+      win.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...point });
+      await waitFor(`window.__clickLog.some(e => e[0] === 'pointerdown')`);
+      if (await run(`window.__clickLog.find(e => e[0] === 'pointerdown')[1] === 'SUMMARY'`)) break;
+      win.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...point });
+      await new Promise(r => setTimeout(r, 100));
+      if (attempt === 5) throw new Error(`The press never landed on the summary: ${JSON.stringify(await run('window.__clickLog'))}`);
+    }
     // Visible answer text grows below the summary; following the bottom would move it.
     win.webContents.send('chat-event', { ...thinkingEvent, delta: 'Second thought. ' });
     win.webContents.send('chat-event', { requestId: lastRequest.requestId, type: 'chunk', delta: '\n\nA longer streamed paragraph. '.repeat(6) });

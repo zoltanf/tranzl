@@ -88,3 +88,18 @@ test('runtime selection keeps the existing install path and rejects unvalidated 
   assert.equal(paths('/data', 'win32-x64').binary, path.join('/data', 'llama-b11158', 'llama-server.exe'));
   for (const target of ['win32-arm64', 'darwin-x64', 'linux-s390x']) assert.throws(() => paths('/data', target), new RegExp(`not available for ${target}`));
 });
+test('Linux runtimes state their minimum glibc and older or non-glibc systems get a clear reason', () => {
+  const { manifest, unsupportedReason } = require('../src/backends/embeddedAssets');
+  for (const [target, runtime] of Object.entries(manifest.targets)) {
+    assert.equal(Boolean(runtime.minGlibc), runtime.os === 'linux', target);
+    if (runtime.minGlibc) assert.match(runtime.minGlibc, /^\d+\.\d+(\.\d+)?$/);
+  }
+  const arm = manifest.targets['linux-arm64'];
+  assert.equal(unsupportedReason(arm, '2.38'), null);
+  assert.equal(unsupportedReason(arm, '2.39'), null);
+  assert.equal(unsupportedReason(arm, '2.40.1'), null);
+  assert.match(unsupportedReason(arm, '2.35'), /needs glibc 2\.38 or newer.*has 2\.35.*LM Studio or Ollama/);
+  assert.match(unsupportedReason(arm, '2.4'), /has 2\.4\b/); // 2.4 is older than 2.38, not newer
+  assert.match(unsupportedReason(arm, null), /glibc-based Linux system/); // e.g. musl
+  assert.equal(unsupportedReason(manifest.targets['darwin-arm64'], null), null);
+});
