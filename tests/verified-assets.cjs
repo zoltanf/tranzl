@@ -79,6 +79,9 @@ test('runtime manifest pins every listed target completely', () => {
     assert.match(runtime.sha256, /^[0-9a-f]{64}$/);
     assert.ok(archiveFormats.includes(runtime.archive.format)); assert.ok(runtime.archive.root);
     for (const name of [runtime.executable, ...runtime.notices]) assert.ok(runtime.files[name], `${target} must verify ${name}`);
+    // Every target ends up with llama.cpp's MIT license next to the runtime, from the archive or our pinned copy.
+    const licenses = { ...runtime.files, ...runtime.bundledNotices };
+    assert.equal(licenses.LICENSE, require('node:crypto').createHash('sha256').update(require('node:fs').readFileSync(path.join(__dirname, '../src/backends/llama.cpp-LICENSE'))).digest('hex'), `${target} must carry the llama.cpp license`);
     for (const sha256 of Object.values(runtime.files)) assert.match(sha256, /^[0-9a-f]{64}$/);
   }
 });

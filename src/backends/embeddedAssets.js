@@ -70,6 +70,12 @@ async function prepare({ dir, modelPath, media, signal, onStatus = () => {} }) {
       await extract(archive, extracted, signal);
       const staged = path.join(extracted, runtime.archive.root), target = path.dirname(binary);
       if (!await verifyRuntime(staged, runtime.files, signal)) throw new Error('Extracted runtime failed verification.');
+      // Some upstream archives (Windows) omit llama.cpp's own license; ship our pinned copy.
+      for (const [name, sha256] of Object.entries(runtime.bundledNotices || {})) {
+        const source = path.join(__dirname, 'llama.cpp-LICENSE');
+        if (!await verify(source, { sha256 }, signal)) throw new Error(`Bundled notice ${name} failed verification.`);
+        await fs.copyFile(source, path.join(staged, name));
+      }
       const backup = path.join(staging, 'previous'); let backedUp = false;
       try { await fs.rename(target, backup); backedUp = true; } catch (error) { if (error.code !== 'ENOENT') throw error; }
       try { await fs.rename(staged, target); }

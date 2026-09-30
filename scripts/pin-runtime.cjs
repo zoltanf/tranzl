@@ -45,8 +45,11 @@ if (!TARGETS[target]) throw new Error(`target must be one of ${Object.keys(TARGE
     // Linux binaries need at least the newest GLIBC_x.y symbol version they reference.
     const byVersion = (a, b) => a.split('.').map(Number).reduce((order, n, i) => order || n - (Number(b.split('.')[i]) || 0), 0) || a.split('.').length - b.split('.').length;
     const minGlibc = osName === 'linux' ? Object.keys(files).flatMap(file => [...fs.readFileSync(path.join(dir, file), 'latin1').matchAll(/GLIBC_(\d+(?:\.\d+)+)/g)].map(match => match[1])).sort(byVersion).at(-1) : undefined;
+    const notices = Object.keys(files).filter(file => /^LICENSE/.test(file));
+    // Archives without llama.cpp's own LICENSE get our pinned copy installed next to the runtime.
+    const bundled = notices.includes('LICENSE') ? {} : { bundledNotices: { LICENSE: crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, '../src/backends/llama.cpp-LICENSE'))).digest('hex') } };
     const entry = { os: osName, arch, compute: TARGETS[target].compute, ...archive, archive: { format, root }, executable,
-      ...(minGlibc && { minGlibc }), notices: Object.keys(files).filter(file => /^LICENSE/.test(file)), files };
+      ...(minGlibc && { minGlibc }), notices, ...bundled, files };
     if (flag === '--check') {
       const same = JSON.stringify(entry) === JSON.stringify(manifest.targets[target]);
       console.log(`${target}: ${same ? 'matches the pinned entry' : 'DIFFERS from the pinned entry'}`);

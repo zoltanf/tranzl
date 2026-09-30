@@ -193,6 +193,9 @@
       "notices": [
         "LICENSE-LLVM-OpenMP"
       ],
+      "bundledNotices": {
+        "LICENSE": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+      },
       "files": {
         "LICENSE-LLVM-OpenMP": "fdad1758a9e1f9d5a81e18879b3406772115edc92c24bfa36b70c654f325e8e4",
         "ggml-base.dll": "c2d9a0863b9a22a042e592a0c24be7125cc46562b67fbbeeda56e27c471125c6",
