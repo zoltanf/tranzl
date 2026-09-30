@@ -6,6 +6,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { createRequire } = require('node:module');
 const mainPath = path.resolve(__dirname, '../src/main.js');
+const trustedFrame = { url: require('node:url').pathToFileURL(path.resolve(__dirname, '../src/renderer/index.html')).href, parent: null };
 function harness(backend, fetch) {
   const handlers = new Map(), events = [], calls = [];
   const electron = { ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
@@ -14,7 +15,8 @@ function harness(backend, fetch) {
   const realRequire = createRequire(mainPath);
   const context = vm.createContext({ require: name => name === 'electron' ? electron : name === './backends/local' ? local : realRequire(name), AbortController, AbortSignal, TextDecoder, fetch, Buffer, console, __dirname: path.dirname(mainPath) });
   vm.runInContext(fs.readFileSync(mainPath, 'utf8') + `\nsettings = { backend: ${JSON.stringify(backend)} };`, context);
-  const event = { sender: { isDestroyed: () => false, send: (channel, data) => events.push({ channel, ...data }) } };
+  // IPC is accepted only from the app's own top-level page (src/ipc.js).
+  const event = { senderFrame: trustedFrame, sender: { isDestroyed: () => false, send: (channel, data) => events.push({ channel, ...data }) } };
   return { handlers, event, events, calls, setBackend: backend => vm.runInContext(`settings.backend = ${JSON.stringify(backend)}`, context) };
 }
 const messages = [{ role: 'user', content: 'My name is Sam' }, { role: 'assistant', content: 'Hello Sam' }, { role: 'user', content: 'What is my name?' }];
@@ -67,10 +69,10 @@ test('stopping chat aborts chat without cancelling translation', async () => {
   }));
   const translation = h.handlers.get('translate')(h.event, { text: 'Hello', model: 'test', targetLanguage: 'German' });
   const chat = h.handlers.get('chat-send')(h.event, { messages, model: 'test' });
-  h.handlers.get('chat-stop')();
+  h.handlers.get('chat-stop')(h.event);
   assert.equal((await chat).aborted, true);
   assert.equal(requests[0].signal.aborted, false);
-  h.handlers.get('cancel-translate')(); assert.equal((await translation).aborted, true);
+  h.handlers.get('cancel-translate')(h.event); assert.equal((await translation).aborted, true);
 });
 test('attachments reject oversized and binary files without including their contents', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-files-test-'));
@@ -146,4 +148,13 @@ test('LM Studio streaming errors fail the request instead of saving an empty suc
   assert.equal(result.ok, false);
   assert.match(result.error, /Context window exceeded/);
   assert.equal(h.events.some(event => event.type === 'done'), false);
+});
+
+test('IPC from any page other than the app page is refused', async () => {
+  const h = harness('local');
+  const page = h.event.senderFrame.url;
+  for (const senderFrame of [null, { url: 'https://evil.example/', parent: null }, { url: 'file:///tmp/dropped.html', parent: null }, { url: page, parent: {} }]) {
+    await assert.rejects(async () => h.handlers.get('chat-stop')({ ...h.event, senderFrame }), /Blocked chat-stop from an untrusted page/);
+  }
+  assert.doesNotThrow(() => h.handlers.get('chat-stop')(h.event));
 });

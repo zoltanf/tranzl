@@ -15,7 +15,8 @@ function parseFile(filename) {
 }
 
 function registerChatStore({ ipcMain, app, safeStorage, dialog, shell }) {
-  const store = createSecureStore({ file: () => path.join(app.getPath('userData'), 'chats.enc'), safeStorage, label: 'Chats' });
+  const store = createSecureStore({ file: () => path.join(app.getPath('userData'), 'chats.enc'), safeStorage, label: 'Chats',
+    isValid: data => Boolean(data) && typeof data === 'object' && Array.isArray(data.sessions) });
   registerStore({ ipcMain, shell }, 'chat', store, {
     normalize: data => ({ sessions: [], ...(data && typeof data === 'object' ? data : {}) }),
     valid: data => Boolean(data) && Array.isArray(data.sessions),

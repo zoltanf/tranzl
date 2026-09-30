@@ -7,15 +7,17 @@ try {
   if (profile.test) console.error(`Tranzl is using the test profile ${profile.dir}`);
 } catch (error) { console.error(error.message); process.exit(2); }
 
+const RENDERER_PAGE = path.join(__dirname, 'renderer', 'index.html');
+const ipc = require('./ipc').trustedIpc(ipcMain, RENDERER_PAGE);
 const local = require('./backends/local');
 const { readClipboardImage } = require('./clipboardImage');
-ipcMain.handle('clipboard-image', async () => {
+ipc.handle('clipboard-image', async () => {
   try { return await readClipboardImage(clipboard); } catch (error) { return { error: error.message }; }
 });
 const { prepareContext } = require('./chatCompaction');
 const { validateMessages, openAIMessages, ollamaMessages } = require('./chatProtocol');
 const { createSecureStore, registerStore } = require('./secureStore');
-require('./chatStore')({ ipcMain, app, safeStorage, dialog, shell });
+require('./chatStore')({ ipcMain: ipc, app, safeStorage, dialog, shell });
 
 const LM_STUDIO_BASE_URL = 'http://127.0.0.1:1234';
 const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
@@ -143,6 +145,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 
@@ -150,7 +153,14 @@ function createWindow() {
     saveSettings({ windowBounds: win.getBounds() });
   });
 
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  win.loadFile(RENDERER_PAGE);
+  // Never leave the app page: a dropped file, stray link or script could otherwise load another
+  // document with this preload. Web links open in the system browser instead.
+  win.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault();
+    if (url.startsWith('https://')) shell.openExternal(url);
+  });
+  win.webContents.on('will-attach-webview', event => event.preventDefault());
   // Links with target=_blank (About tab) open in the system browser
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url);
@@ -177,7 +187,7 @@ async function listOllamaModels() {
     .filter((name) => !name.includes('embed'));
 }
 
-ipcMain.handle('list-models', async () => {
+ipc.handle('list-models', async () => {
   if (settings.backend === 'local') {
     return { ok: true, models: [local.MODEL_LABEL] };
   }
@@ -221,9 +231,9 @@ async function chatModelInfo(model, backend = settings.backend) {
     return { contextSize: (instance || (matching.length === 1 ? matching[0] : null))?.config?.context_length ?? null };
   } catch { return { contextSize: null }; }
 }
-ipcMain.handle('chat-model-info', (_event, model) => chatModelInfo(model));
+ipc.handle('chat-model-info', (_event, model) => chatModelInfo(model));
 
-ipcMain.handle('get-setup', () => ({
+ipc.handle('get-setup', () => ({
   backend: settings.backend ?? null,
   modelReady: local.isReady(settings.localModelPath),
   modelLabel: local.MODEL_LABEL,
@@ -238,7 +248,7 @@ ipcMain.handle('get-setup', () => ({
 
 // Theme is applied through nativeTheme: it drives prefers-color-scheme in
 // the renderer (which the CSS keys off) and keeps the window chrome in sync
-ipcMain.handle('set-theme', (_event, theme) => {
+ipc.handle('set-theme', (_event, theme) => {
   if (!['system', 'light', 'dark'].includes(theme)) {
     return { ok: false, error: `unknown theme: ${theme}` };
   }
@@ -253,14 +263,16 @@ ipcMain.handle('set-theme', (_event, theme) => {
 // OS keychain (Electron safeStorage) instead of plaintext localStorage.
 // Without protected storage, or when the existing file is unreadable, the data
 // stays in memory for the session and the existing file is never overwritten.
-const historyStore = createSecureStore({ file: () => path.join(app.getPath('userData'), 'history.enc'), safeStorage, label: 'Input history' });
-registerStore({ ipcMain, shell }, 'history', historyStore, {
+const historyStore = createSecureStore({ file: () => path.join(app.getPath('userData'), 'history.enc'), safeStorage, label: 'Input history',
+  // A bare array is the legacy source-history format.
+  isValid: data => Array.isArray(data) || (Boolean(data) && typeof data === 'object') });
+registerStore({ ipcMain: ipc, shell }, 'history', historyStore, {
   // Legacy format: a bare array of source-history entries
   normalize: data => { const store = Array.isArray(data) ? { sourceHistory: data } : data; return { store: store && typeof store === 'object' ? store : null }; },
   valid: store => Boolean(store) && typeof store === 'object' && !Array.isArray(store),
 });
 
-ipcMain.handle('choose-backend', (_event, backend) => {
+ipc.handle('choose-backend', (_event, backend) => {
   if (!['lmstudio', 'local', 'ollama'].includes(backend)) {
     return { ok: false, error: `unknown backend: ${backend}` };
   }
@@ -272,7 +284,7 @@ ipcMain.handle('choose-backend', (_event, backend) => {
 
 let downloadInFlight = false;
 
-ipcMain.handle('download-model', async (event) => {
+ipc.handle('download-model', async (event) => {
   const send = (payload) => {
     if (!event.sender.isDestroyed()) event.sender.send('setup-event', payload);
   };
@@ -368,7 +380,7 @@ const translationRequest = { abort: null };
 const chatRequest = { abort: null };
 
 // User-initiated stop (Esc): aborts whichever backend request is in flight
-ipcMain.handle('cancel-translate', () => {
+ipc.handle('cancel-translate', () => {
   if (translationRequest.abort) translationRequest.abort.abort();
   return { ok: true };
 });
@@ -764,7 +776,7 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
   }
 }
 
-ipcMain.handle('translate', (event, options) => {
+ipc.handle('translate', (event, options) => {
   try {
     if (options.images != null) {
       if (!Array.isArray(options.images) || options.images.some(file => file.kind !== 'image')) throw new Error('Translation accepts image attachments only.');
@@ -773,11 +785,11 @@ ipcMain.handle('translate', (event, options) => {
   } catch (error) { return { ok: false, error: error.message }; }
   return runInference(event, options);
 });
-ipcMain.handle('chat-send', (event, options) => {
+ipc.handle('chat-send', (event, options) => {
   try { validateMessages(options?.messages); } catch (error) { return { ok: false, error: error.message }; }
   return runInference(event, options, true);
 });
-ipcMain.handle('chat-stop', () => { chatRequest.abort?.abort(); });
+ipc.handle('chat-stop', () => { chatRequest.abort?.abort(); });
 
 app.whenReady().then(() => {
   loadSettings();

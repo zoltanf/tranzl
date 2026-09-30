@@ -12,7 +12,8 @@ function storageStatus(safeStorage, platform = process.platform) {
   return { persistent: true };
 }
 
-function createSecureStore({ file, safeStorage, label, platform = process.platform, fsImpl = fs, now = () => new Date() }) {
+// isValid checks the decrypted shape; anything else is treated as damaged, never as empty data.
+function createSecureStore({ file, safeStorage, label, isValid = () => true, platform = process.platform, fsImpl = fs, now = () => new Date() }) {
   // Set when an existing file could not be read. Saving would destroy it, so writes are refused
   // until a later load succeeds or the user explicitly sets the file aside with reset().
   let unreadable = null, loaded = false, backup = null;
@@ -30,8 +31,8 @@ function createSecureStore({ file, safeStorage, label, platform = process.platfo
       unreadable = `Saved ${name} could not be read, so changes are kept only until you close the app. The file was not changed. Unlock your keyring and choose Try again, or choose Start fresh to set the file aside.`;
       return { data: null, persistent: false, error: unreadable, canRetry: true, canReset: true };
     }
-    try { return { data: JSON.parse(text), persistent: true }; }
-    catch {
+    try { const data = JSON.parse(text); if (isValid(data)) return { data, persistent: true }; } catch {}
+    {
       unreadable = `The saved ${name} file is damaged, so changes are kept only until you close the app. The file was not changed. Choose Start fresh to set it aside.`;
       return { data: null, persistent: false, error: unreadable, canRetry: false, canReset: true };
     }
@@ -41,19 +42,24 @@ function createSecureStore({ file, safeStorage, label, platform = process.platfo
     const status = storageStatus(safeStorage, platform);
     if (!status.persistent) return { ok: false, error: `${status.reason}. ${label} will only last until you close the app.` };
     if (unreadable) return { ok: false, error: unreadable };
+    try { fsImpl.renameSync(stage(data), file()); return { ok: true }; }
+    catch (error) {
+      try { fsImpl.unlinkSync(file() + '.tmp'); } catch {}
+      return { ok: false, error: `Could not save ${name}; the previous saved copy was kept. ${error.message}` };
+    }
+  }
+  // Writes encrypted data to <file>.tmp (fsync'd) and returns its path for the caller to move into place.
+  function stage(data) {
     const temp = file() + '.tmp';
     try {
       const fd = fsImpl.openSync(temp, 'w', 0o600);
       try { fsImpl.writeFileSync(fd, safeStorage.encryptString(JSON.stringify(data))); fsImpl.fsyncSync(fd); }
       finally { fsImpl.closeSync(fd); }
-      fsImpl.renameSync(temp, file());
-      return { ok: true };
-    } catch (error) {
-      try { fsImpl.unlinkSync(temp); } catch {}
-      return { ok: false, error: `Could not save ${name}; the previous saved copy was kept. ${error.message}` };
-    }
+      return temp;
+    } catch (error) { try { fsImpl.unlinkSync(temp); } catch {} throw error; }
   }
-  // Explicit user action: renames an unreadable file aside (never deleting it), then saves data.
+  // Explicit user action: sets an unreadable file aside (never deleting it) and saves data in its
+  // place. The replacement is written first, so any failure leaves the original where it was.
   function reset(data) {
     const current = load();
     if (current.persistent) return { ok: false, error: `Saved ${name} can be read again. Choose Try again.` };
@@ -64,10 +70,23 @@ function createSecureStore({ file, safeStorage, label, platform = process.platfo
     const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     let aside = `${stem}.unreadable-${stamp}${ext}`;
     for (let n = 2; fsImpl.existsSync(aside); n++) aside = `${stem}.unreadable-${stamp}-${n}${ext}`;
+    let staged;
+    try { staged = stage(data); }
+    catch (error) { return { ok: false, error: `Could not start fresh, so nothing was changed. ${error.message}` }; }
     try { fsImpl.renameSync(target, aside); }
-    catch (error) { return { ok: false, error: `Could not set the unreadable file aside, so nothing was changed. ${error.message}` }; }
+    catch (error) {
+      try { fsImpl.unlinkSync(staged); } catch {}
+      return { ok: false, error: `Could not set the unreadable file aside, so nothing was changed. ${error.message}` };
+    }
+    try { fsImpl.renameSync(staged, target); }
+    catch (error) {
+      try { fsImpl.unlinkSync(staged); } catch {}
+      try { fsImpl.renameSync(aside, target); }
+      catch { backup = aside; return { ok: false, backup: path.basename(aside), error: `Could not start fresh. The unreadable file is kept as ${path.basename(aside)}. ${error.message}` }; }
+      return { ok: false, error: `Could not start fresh, so nothing was changed. ${error.message}` };
+    }
     unreadable = null; backup = aside;
-    return { ...save(data), backup: path.basename(aside) };
+    return { ok: true, backup: path.basename(aside) };
   }
   return { load, save, reset, backupPath: () => backup };
 }

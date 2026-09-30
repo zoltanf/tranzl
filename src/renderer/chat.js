@@ -468,10 +468,8 @@
   el('reset').onclick = async () => {
     if (!confirm('Start fresh? The unreadable saved chats file will be renamed and kept in the Tranzl data folder, not deleted. Chats from now on, including the ones open now, will be saved to a new file.')) return;
     const result = await window.tranzl.chatReset({ sessions, activeId });
-    if (result.backup) {
-      el('reveal').hidden = false; el('reveal').title = `Kept as ${result.backup}`;
-      showStorage({ persistent: true });
-    }
+    if (result.backup) { el('reveal').hidden = false; el('reveal').title = `Kept as ${result.backup}`; }
+    if (result.ok) showStorage({ persistent: true });
     if (result.ok) { notice(''); clearStatus(); } else fail(result.error || 'Could not start fresh.');
   };
   el('reveal').onclick = () => window.tranzl.chatRevealBackup();

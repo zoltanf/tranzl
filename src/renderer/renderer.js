@@ -497,6 +497,8 @@ historyResetBtn.addEventListener('click', async () => {
   if (result.backup) {
     historyRevealBtn.hidden = false;
     historyRevealBtn.title = `Kept as ${result.backup}`;
+  }
+  if (result.ok) {
     showHistoryStorage({ persistent: true });
     if (migrateLegacyHistory()) persistSecureStore();
   }

@@ -35,7 +35,8 @@ function stores(dir, safeStorage) {
   const context = vm.createContext({ require: name => name === 'electron' ? electron : realRequire(name), AbortController, AbortSignal, TextDecoder, Buffer, console, __dirname: path.dirname(mainPath) });
   vm.runInContext(fs.readFileSync(mainPath, 'utf8'), context);
   // Results cross a vm realm (like IPC); compare plain copies.
-  const call = async (name, ...args) => JSON.parse(JSON.stringify(await handlers.get(name)({}, ...args)));
+  const event = { senderFrame: { url: require('node:url').pathToFileURL(path.resolve(__dirname, '../src/renderer/index.html')).href, parent: null } };
+  const call = async (name, ...args) => JSON.parse(JSON.stringify(await handlers.get(name)(event, ...args)));
   return { call, revealed };
 }
 
@@ -215,4 +216,40 @@ test('a failed rename during Start fresh changes nothing and keeps saving blocke
   assert.equal(result.backup, undefined); assert.equal(store.backupPath(), null);
   assert.equal(store.save({ sessions: [] }).ok, false);
   assert.equal(fs.readFileSync(file, 'utf8'), 'unreadable'); assert.deepEqual(fs.readdirSync(dir), ['chats.enc']);
+});
+
+for (const [name, prefix, wrong] of [['chats.enc', 'chat', { notSessions: true }], ['chats.enc', 'chat', { sessions: 'text' }], ['history.enc', 'history', 'just text']]) {
+  test(`${name}: decrypted data with the wrong shape is damaged, not empty (${JSON.stringify(wrong)})`, async t => {
+    const dir = tempDir(t), safeStorage = fakeSafeStorage(), file = path.join(dir, name);
+    fs.writeFileSync(file, safeStorage.encryptString(JSON.stringify(wrong)));
+    const original = fs.readFileSync(file), app = stores(dir, safeStorage);
+    const loaded = await app.call(`${prefix}-load`);
+    assert.deepEqual([loaded.persistent, loaded.canRetry, loaded.canReset], [false, false, true]);
+    assert.equal((await app.call(`${prefix}-save`, prefix === 'chat' ? { sessions: [] } : { sourceHistory: [] })).ok, false);
+    assert.deepEqual(fs.readFileSync(file), original);
+  });
+}
+
+test('Start fresh writes the replacement first: a failed write renames nothing', t => {
+  const dir = tempDir(t), file = path.join(dir, 'chats.enc'), safeStorage = fakeSafeStorage();
+  fs.writeFileSync(file, 'unreadable');
+  const fsImpl = { ...fs, writeFileSync: () => { throw Object.assign(new Error('disk full'), { code: 'ENOSPC' }); } };
+  const store = createSecureStore({ file: () => file, safeStorage, label: 'Chats', platform: 'linux', fsImpl });
+  store.load();
+  const result = store.reset({ sessions: [] });
+  assert.equal(result.ok, false); assert.equal(result.backup, undefined); assert.match(result.error, /nothing was changed.*disk full/);
+  assert.deepEqual(fs.readdirSync(dir), ['chats.enc']); assert.equal(fs.readFileSync(file, 'utf8'), 'unreadable');
+});
+
+test('Start fresh puts the unreadable file back if the replacement cannot be moved into place', t => {
+  const dir = tempDir(t), file = path.join(dir, 'chats.enc'), safeStorage = fakeSafeStorage();
+  fs.writeFileSync(file, 'unreadable');
+  let renames = 0;
+  const fsImpl = { ...fs, renameSync: (from, to) => { if (++renames === 2) throw Object.assign(new Error('locked'), { code: 'EBUSY' }); return fs.renameSync(from, to); } };
+  const store = createSecureStore({ file: () => file, safeStorage, label: 'Chats', platform: 'linux', fsImpl });
+  store.load();
+  const result = store.reset({ sessions: [] });
+  assert.equal(result.ok, false); assert.equal(result.backup, undefined); assert.match(result.error, /nothing was changed.*locked/);
+  assert.deepEqual(fs.readdirSync(dir), ['chats.enc']); assert.equal(fs.readFileSync(file, 'utf8'), 'unreadable');
+  assert.equal(store.save({ sessions: [] }).ok, false, 'still blocked: the unreadable file is back in place');
 });

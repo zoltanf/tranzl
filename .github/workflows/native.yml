@@ -43,6 +43,7 @@ jobs:
       run:
         shell: bash
     env:
+      TRANZL_EXPECT_EMBEDDED: ${{ matrix.embedded == 'unsupported' && 'unavailable' || 'available' }}
       INFERENCE: ${{ matrix.inference && (github.event_name == 'workflow_dispatch' && inputs.inference || contains(github.event.head_commit.message, '[inference]')) }}
     steps:
       - uses: actions/checkout@v7
@@ -102,11 +103,19 @@ jobs:
         timeout-minutes: 20
         run: npm run pack
 
-      - name: UI tests against the package
+      - name: Mocked UI tests on the packaged resources
         timeout-minutes: 20
         run: |
           app=$(node -p "require('path').resolve('dist', 'Tranzl-' + process.platform + '-' + process.arch, process.platform === 'darwin' ? 'Tranzl.app/Contents/Resources/app' : 'resources/app')")
           TRANZL_APP_ROOT="$app" $XVFB npm run test:electron
+
+      - name: Smoke test the packaged app itself
+        timeout-minutes: 10
+        # The real executable: IPC from its page, navigation lock, embedded availability, clean quit.
+        run: |
+          exe=$(node -p "const p = require('path'), dir = p.resolve('dist', 'Tranzl-' + process.platform + '-' + process.arch); ({ darwin: p.join(dir, 'Tranzl.app/Contents/MacOS/Tranzl'), win32: p.join(dir, 'Tranzl.exe'), linux: p.join(dir, 'Tranzl') })[process.platform]")
+          echo "TRANZL_EXECUTABLE=$exe" >> "$GITHUB_ENV"
+          TRANZL_EXECUTABLE="$exe" $XVFB node --test tests/app-smoke.cjs
 
       - name: Embedded inference is reported unavailable (unsupported systems)
         if: matrix.embedded == 'unsupported'
@@ -136,6 +145,11 @@ jobs:
               if (Date.now() - last > 30000) { last = Date.now(); console.log(Math.round(done / 1048576) + ' / ' + Math.round(total / 1048576) + ' MB'); }
             } }).then(file => console.log('Verified', file));
           " "$RUNNER_TEMP/models"
+
+      - name: Real translation through the packaged app
+        timeout-minutes: 30
+        if: env.INFERENCE == 'true'
+        run: TRANZL_SMOKE_MODEL="$RUNNER_TEMP/models/hf_ggml-org_gemma-4-E4B-it.Q4_0.gguf" $XVFB node --test tests/app-smoke.cjs
 
       - name: Build the evaluation package
         timeout-minutes: 20
