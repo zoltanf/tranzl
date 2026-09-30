@@ -184,7 +184,9 @@ app.whenReady().then(async () => {
     try { await engine?.stop(); } catch (error) { report.shutdownError = error.message; }
     fs.mkdirSync(path.dirname(path.resolve(args.output)), { recursive: true });
     fs.writeFileSync(args.output, JSON.stringify(report, null, 2) + '\n');
-    fs.rmSync(profile, { recursive: true, force: true });
+    // Best effort: Windows keeps this process's own profile files locked until it exits.
+    try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); }
+    catch (error) { console.warn(`Could not remove the temporary profile ${profile} (${error.code}).`); }
     app.exit(report.fatal || report.shutdownError || report.cases.some(result => !result.passed) ? 1 : 0);
   }
 });
