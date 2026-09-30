@@ -64,7 +64,8 @@ test('the real app serves IPC to its page, cannot navigate away and quits cleanl
     const setup = await page.evaluate('window.tranzl.getSetup()');
     assert.equal(typeof setup.modelLabel, 'string', 'IPC from the app page works');
     const chats = await page.evaluate('window.tranzl.chatLoad()');
-    if (process.platform === 'linux') assert.match(chats.error || '', /No desktop keyring/, 'the basic store is never used for saved data');
+    // With the basic store Electron reports encryption unavailable or basic_text; either way nothing may persist.
+    if (process.platform === 'linux') { assert.equal(chats.persistent, false, 'the basic store is never used for saved data'); assert.match(chats.error, /only last until you close the app/); }
     else assert.equal(chats.persistent, true);
     if (process.env.TRANZL_EXPECT_EMBEDDED === 'unavailable') assert.match(setup.embeddedUnavailable || '', /needs glibc [\d.]+ or newer/);
     if (process.env.TRANZL_EXPECT_EMBEDDED === 'available') assert.equal(setup.embeddedUnavailable, null);
