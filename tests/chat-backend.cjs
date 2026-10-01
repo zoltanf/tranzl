@@ -17,7 +17,7 @@ function harness(backend, fetch) {
   vm.runInContext(fs.readFileSync(mainPath, 'utf8') + `\nsettings = { backend: ${JSON.stringify(backend)} };`, context);
   // IPC is accepted only from the app's own top-level page (src/ipc.js).
   const event = { senderFrame: trustedFrame, sender: { isDestroyed: () => false, send: (channel, data) => events.push({ channel, ...data }) } };
-  return { handlers, event, events, calls, setBackend: backend => vm.runInContext(`settings.backend = ${JSON.stringify(backend)}`, context) };
+  return { handlers, event, events, calls, local, setBackend: backend => vm.runInContext(`settings.backend = ${JSON.stringify(backend)}`, context) };
 }
 const messages = [{ role: 'user', content: 'My name is Sam' }, { role: 'assistant', content: 'Hello Sam' }, { role: 'user', content: 'What is my name?' }];
 test('embedded chat restores turns and keeps translation requests independent', async () => {
@@ -157,4 +157,13 @@ test('IPC from any page other than the app page is refused', async () => {
     await assert.rejects(async () => h.handlers.get('chat-stop')({ ...h.event, senderFrame }), /Blocked chat-stop from an untrusted page/);
   }
   assert.doesNotThrow(() => h.handlers.get('chat-stop')(h.event));
+});
+
+test('the model download is refused when the runtime cannot start on this system', async () => {
+  const h = harness('local'), local = h.local;
+  local.availability = () => ({ available: true }); local.download = async () => { throw new Error('must not download'); };
+  local.prepareRuntime = async () => { throw new Error("This system's C/C++ runtime libraries are older than the inference runtime needs. The embedded model cannot run here; use LM Studio or Ollama instead."); };
+  const result = await h.handlers.get('download-model')(h.event);
+  assert.equal(result.ok, false); assert.match(result.error, /cannot run here/);
+  assert.ok(h.events.some(e => e.channel === 'setup-event' && e.type === 'error' && /cannot run here/.test(e.error)));
 });

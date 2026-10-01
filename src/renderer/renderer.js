@@ -828,7 +828,10 @@ async function startModelDownload() {
 }
 
 window.tranzl.onSetupEvent((event) => {
-  if (event.type === 'progress') {
+  if (event.type === 'status') {
+    progressFillEl.style.width = '0%';
+    progressTextEl.textContent = event.text;
+  } else if (event.type === 'progress') {
     const pct = event.total ? Math.round((event.downloaded / event.total) * 100) : 0;
     progressFillEl.style.width = `${pct}%`;
     progressTextEl.textContent =
@@ -840,7 +843,7 @@ window.tranzl.onSetupEvent((event) => {
   } else if (event.type === 'error') {
     setupProgressEl.classList.add('hidden');
     choicesEl.classList.remove('hidden');
-    setupErrorEl.textContent = `Download failed: ${event.error} — choose "Embedded model" to retry; the download resumes where it stopped.`;
+    setupErrorEl.textContent = /cannot run here/.test(event.error) ? event.error : `Download failed: ${event.error} — choose "Embedded model" to retry; the download resumes where it stopped.`;
     setupErrorEl.classList.remove('hidden');
     setupCloseBtn.classList.remove('hidden');
     setStatus('Model download failed', 'error');

@@ -25,13 +25,17 @@ test('the evaluation override applies the CPU-class rules on any platform', () =
   assert.equal(resourcePolicy({ platform: 'linux', totalMemoryBytes: 32 * GIB }).contextSize, FULL_CONTEXT);
 });
 test('availability combines the runtime gate with the memory policy', () => {
-  const { availability } = require('../src/backends/embeddedAssets');
-  process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB = '8';
-  try { const low = availability(); assert.equal(low.available, false); assert.match(low.reason, /at least 12 GB/); }
-  finally { delete process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB; }
-  process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB = '12';
-  try { const mid = availability(); assert.deepEqual([mid.available, mid.contextSize], [true, REDUCED_CONTEXT]); assert.match(mid.note, /smaller context/); }
-  finally { delete process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB; }
+  const { availability, runtimeFor } = require('../src/backends/embeddedAssets');
+  let runtimeReason = null; try { runtimeFor(); } catch (error) { runtimeReason = error.message; }
+  const at = gib => { process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB = String(gib); try { return availability(); } finally { delete process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB; } };
+  if (runtimeReason) {
+    // No pinned runtime can run here (e.g. Ubuntu 22.04 ARM64): that reason wins, whatever the memory.
+    for (const gib of [8, 12, 64]) assert.equal(at(gib).reason, runtimeReason);
+    return;
+  }
+  const low = at(8); assert.equal(low.available, false); assert.match(low.reason, /at least 12 GB/);
+  const mid = at(12); assert.deepEqual([mid.available, mid.contextSize], [true, REDUCED_CONTEXT]); assert.match(mid.note, /smaller context/);
+  const full = at(32); assert.deepEqual([full.available, full.contextSize, full.note], [true, FULL_CONTEXT, null]);
 });
 test('the embedded backend takes its context size from the policy', async () => {
   const { createEmbeddedBackend } = require('../src/backends/embeddedBackend');

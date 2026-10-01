@@ -299,6 +299,8 @@ ipc.handle('download-model', async (event) => {
   // Progress fires very frequently — throttle events to ~5/s
   let lastProgress = 0;
   try {
+    // Small runtime first, and prove it starts here, before the 4.6 GB model.
+    await local.prepareRuntime({ onStatus: text => send({ type: 'status', text }) });
     const modelPath = await local.download({
       dirPath: path.join(app.getPath('userData'), 'models'),
       onProgress: (downloaded, total) => {

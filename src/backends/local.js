@@ -12,6 +12,8 @@ module.exports = {
   availability: () => require('./embeddedAssets').availability(),
   modelState: () => backend?.modelState() || { state: 'idle' },
   download: options => require('./embeddedAssets').downloadModel(options),
+  // Installs and probes the runtime (no model); call before offering the model download.
+  prepareRuntime: options => require('./embeddedAssets').prepareRuntime({ ...options, dir: path.join(require('electron').app.getPath('userData'), 'multimodal') }),
   preload: (...args) => service().preload(...args),
   chat: options => service().chat(options),
   translate: options => service().translate(options),

@@ -57,10 +57,9 @@ function paths(dir, target) {
   // The install directory name predates the manifest; keep it so existing runtimes are reused.
   return { runtime, binary: path.join(dir, `llama-${VERSION}`, runtime.executable), projector: path.join(dir, PROJECTOR.filename) };
 }
-async function prepare({ dir, modelPath, media, signal, onStatus = () => {} }) {
-  const { runtime, binary, projector } = paths(dir);
-  onStatus('Verifying embedded model…');
-  if (!await verify(modelPath, MODEL, signal)) throw new Error('The embedded model is missing or failed verification. Download it again in Settings.');
+// Installs the pinned runtime for this system if it is missing or fails verification.
+async function ensureRuntime({ dir, signal, onStatus = () => {} }) {
+  const { runtime, binary } = paths(dir);
   if (!await verifyRuntime(path.dirname(binary), runtime.files, signal)) {
     onStatus('Downloading verified inference runtime…');
     const archive = await downloadVerified(runtime, path.join(dir, `llama-${VERSION}.${runtime.archive.format}`), { signal });
@@ -91,6 +90,36 @@ async function prepare({ dir, modelPath, media, signal, onStatus = () => {} }) {
       }
     } finally { if (!preserveStaging) await fs.rm(staging, { recursive: true, force: true }); }
   }
+  return binary;
+}
+// Runs the installed server without a model, so a system whose libraries cannot load it is
+// found out before the 4.6 GB model download rather than at first use.
+async function probeRuntime(binary, { signal, timeoutMs = 20000, execFileImpl = execFile } = {}) {
+  try {
+    await promisify(execFileImpl)(binary, ['--version'], { signal, timeout: timeoutMs, maxBuffer: 1 << 20, windowsHide: true });
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason;
+    const output = `${error.stderr || ''}\n${error.stdout || ''}\n${error.message}`;
+    const detail = /version `?(GLIBCXX|CXXABI|GLIBC)_[\d.]+'? not found/i.test(output) ? 'This system\'s C/C++ runtime libraries are older than the inference runtime needs (for example Ubuntu 24.04 or newer is required).'
+      : /error while loading shared libraries|cannot open shared object|not found \(required by|The code execution cannot proceed|is not recognized|\.dll was not found/i.test(output) ? 'A library the inference runtime needs is missing on this system.'
+      : error.code === 'ENOENT' ? 'The inference runtime executable is missing.'
+      : error.killed || error.code === 'ETIMEDOUT' ? 'The inference runtime did not respond in time.'
+      : `The inference runtime could not start (${error.code ?? error.signal ?? 'unknown error'}).`;
+    throw new Error(`${detail} The embedded model cannot run here; use LM Studio or Ollama instead.`);
+  }
+}
+// Acquisition plus probe: what must succeed before offering the model download.
+async function prepareRuntime(options) {
+  const binary = await ensureRuntime(options);
+  options.onStatus?.('Checking the inference runtime on this system…');
+  await probeRuntime(binary, { signal: options.signal });
+  return binary;
+}
+async function prepare({ dir, modelPath, media, signal, onStatus = () => {} }) {
+  const { projector } = paths(dir);
+  onStatus('Verifying embedded model…');
+  if (!await verify(modelPath, MODEL, signal)) throw new Error('The embedded model is missing or failed verification. Download it again in Settings.');
+  await ensureRuntime({ dir, signal, onStatus });
   if (media) {
     onStatus('Preparing image/audio support…');
     let lastProgress = 0;
@@ -107,4 +136,4 @@ async function verifyRuntime(dir, files, signal) {
   }
   return true;
 }
-module.exports = { MODEL, PROJECTOR, VERSION, manifest, archiveFormats: Object.keys(EXTRACTORS), runtimeFor, unsupportedReason, availability, paths, prepare, verifyRuntime, downloadModel: ({ dirPath, ...options }) => downloadVerified(MODEL, path.join(dirPath, MODEL.filename), options) };
+module.exports = { MODEL, PROJECTOR, VERSION, manifest, archiveFormats: Object.keys(EXTRACTORS), runtimeFor, unsupportedReason, availability, paths, ensureRuntime, probeRuntime, prepareRuntime, prepare, verifyRuntime, downloadModel: ({ dirPath, ...options }) => downloadVerified(MODEL, path.join(dirPath, MODEL.filename), options) };
