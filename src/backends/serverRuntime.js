@@ -52,12 +52,22 @@ async function readCompletion(body, { signal, onChunk = () => {}, onThought = ()
 
 // Startup log lines are classified into a kind and then discarded (raw logs are never kept).
 // Exact prefixes from llama.cpp b11158: ggml-cuda.cu, ggml-vulkan.cpp, ggml-metal-device.m, llama.cpp.
+const GPU_COMPONENT = /(ggml_metal|ggml_cuda|ggml_vulkan|ggml_backend_cuda|ggml_backend_vk|ggml_backend_metal|CUDA error|vk::)/i;
 const STARTUP_FAILURES = [
-  ['gpu-memory', /failed to allocate Metal buffer|CUDA error: out of memory|ErrorOutOfDeviceMemory|OutOfDeviceMemory|failed to allocate pinned memory|Failed to allocate pinned memory|failed to allocate buffer, size =/i],
-  ['gpu-init', /CUDA error:|ggml_vulkan: (Error|device lost)|ggml_cuda_init|failed to create command queue|failed to initialize residency set|failed to create (Metal library|pipeline state)|failed to initialize backend|Compute pipeline creation failed/i],
-  ['model-load', /error loading model|failed to load model|failed to load GGUF split|error loading model (hyperparameters|vocabulary)/i],
-  ['context', /failed to create context with model|failed to create ggml context|failed to allocate context/i],
+  // GPU kinds require a GPU component on the line, so a plain host allocation failure never triggers a GPU retry.
+  ['gpu-memory', line => GPU_COMPONENT.test(line) && /out of memory|OutOfDeviceMemory|failed to allocate (Metal buffer|pinned memory|buffer, size =)|Failed to allocate pinned memory/i.test(line)],
+  ['gpu-init', line => GPU_COMPONENT.test(line) && /CUDA error:|device lost|ggml_cuda_init|failed to create command queue|failed to initialize residency set|failed to create (Metal library|pipeline state)|failed to initialize|Compute pipeline creation failed|Error:/i.test(line)],
+  ['model-load', line => /error loading model|failed to load model|failed to load GGUF split/i.test(line)],
+  ['context', line => /failed to create context with model|failed to create ggml context|failed to allocate context/i.test(line)],
 ];
+const classifyLine = line => STARTUP_FAILURES.find(([, matches]) => matches(line))?.[0] ?? null;
+// What the loaded server actually runs on, from its own startup diagnostics (null = not reported).
+function activeComputeOf(diagnostics) {
+  if (diagnostics.offloadedLayers != null) return diagnostics.offloadedLayers > 0 ? 'gpu' : 'cpu';
+  const backends = diagnostics.modelBufferBackends || [];
+  if (backends.some(name => /^(Metal|CUDA|Vulkan)/.test(name))) return 'gpu';
+  return backends.length ? 'cpu' : null;
+}
 function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8192,
   gpu = 'auto', swaFullCache = true, startupTimeoutMs = 120000, shutdownTimeoutMs = 3000,
   spawnProcess = spawn, onStatus = () => {}, prepareAssets = async () => {} }) {
@@ -143,11 +153,12 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     let failureKind = null;
     for (const stream of [current.stdout, current.stderr]) {
       let tail = '';
+      stream?.on('close', () => { if (!endpoint && !failureKind && tail.trim()) failureKind = classifyLine(tail); });
       stream?.on('data', chunk => {
         const lines = (tail + chunk.toString()).split('\n'); tail = lines.pop().slice(-1024);
         for (const line of lines) {
           if (line.includes(`listening on ${url}`)) heard();
-          if (!endpoint && !failureKind) failureKind = STARTUP_FAILURES.find(([, pattern]) => pattern.test(line))?.[0] ?? null;
+          if (!endpoint && !failureKind) failureKind = classifyLine(line);
           const layers = line.match(/offloaded (\d+)\/(\d+) layers to GPU/);
           if (layers) { diagnostics.offloadedLayers = Number(layers[1]); diagnostics.totalLayers = Number(layers[2]); }
           const backend = line.match(/\b(Metal\d*|CUDA\d*|Vulkan\d*|CPU)(?:_Mapped)?\s+model buffer size/);
@@ -183,13 +194,13 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
         } catch { startup.throwIfAborted(); }
         await delay(50, undefined, { signal: startup });
       }
-      onStatus({ state: 'ready', media, pid: current.pid, compute, fallback, contextSize: effectiveContext, contextReduced });
+      onStatus({ state: 'ready', media, pid: current.pid, compute, activeCompute: activeComputeOf(diagnostics), fallback, contextSize: effectiveContext, contextReduced });
     } catch (error) {
       removeKey(); await terminate();
       if (!failureKind && (current.signalCode === 'SIGILL' || current.exitCode === 3221225501 || current.exitCode === -1073741795)) failureKind = 'cpu-unsupported';
       const kinds = { 'gpu-memory': 'The GPU ran out of memory while loading the model.', 'gpu-init': 'The GPU could not be initialized for inference.',
         'cpu-unsupported': 'This computer\'s processor lacks instructions the inference runtime needs; the embedded model cannot run here.',
-        'model-load': 'The model file could not be loaded; it may be damaged. Download it again in Settings.', context: 'There was not enough memory to create the model context.' };
+        'model-load': 'The inference runtime could not load the model file.', context: 'There was not enough memory to create the model context.' };
       const described = failureKind ? new Error(`${kinds[failureKind]} (${error.message})`) : error;
       described.startupFailure = failureKind;
       throw described;
@@ -323,7 +334,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       stopping = (async () => { await queue; await terminate(); })().finally(() => { stopping = null; });
       return stopping;
     },
-    state: () => ({ pid: child?.pid ?? null, ready: Boolean(endpoint), mediaLoaded, compute, fallback, contextSize: effectiveContext, contextReduced, diagnostics: { ...diagnostics } }),
+    state: () => ({ pid: child?.pid ?? null, ready: Boolean(endpoint), mediaLoaded, compute, activeCompute: activeComputeOf(diagnostics), fallback, contextSize: effectiveContext, contextReduced, diagnostics: { ...diagnostics } }),
   };
 }
 module.exports = { createServerRuntime, readCompletion };

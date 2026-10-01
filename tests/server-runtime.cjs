@@ -164,7 +164,7 @@ test('a damaged model is explained and never triggers a CPU retry; an explicit C
     const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', gpu, startupTimeoutMs: 5000, shutdownTimeoutMs: 150,
       spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), mode, ...args], options); children.push(args); return child; } });
     t.after(() => runtime.stop());
-    if (mode === 'load-fail') await assert.rejects(runtime.chat(options('hello')), /model file could not be loaded.*Download it again/);
+    if (mode === 'load-fail') await assert.rejects(runtime.chat(options('hello')), /could not load the model file/);
     else await runtime.chat(options('hello')); // CPU from the start works first time
     assert.equal(children.length, 1, `${mode}: no retry`);
     assert.equal(runtime.state().fallback, null);
@@ -197,4 +197,31 @@ test('a dropped keep-alive connection on a token count is retried once, not surf
   await runtime.chat(options('hello'));
   assert.equal(await runtime.countTokens(options('hello')), 12);
   assert.equal(children.length, 1, 'same server; no restart');
+});
+
+test('GPU failure then context failure recovers in exactly three starts and release resets both', async t => {
+  const children = [];
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', contextSize: 8192, startupTimeoutMs: 5000, shutdownTimeoutMs: 150,
+    spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), 'gpu-then-context', ...args], options); children.push(args); return child; } });
+  t.after(() => runtime.stop());
+  await runtime.chat(options('hello'));
+  assert.deepEqual(children.map(args => [args.includes('--gpu-layers') ? 'cpu' : 'auto', args[args.indexOf('--ctx-size') + 1]]), [['auto', '8192'], ['cpu', '8192'], ['cpu', '4096']]);
+  const state = runtime.state();
+  assert.deepEqual([state.compute, state.fallback.kind, state.contextSize, state.contextReduced], ['cpu', 'gpu-memory', 4096, { from: 8192, to: 4096 }]);
+});
+test('a host allocation failure is not mistaken for a GPU failure: no CPU retry', async t => {
+  const children = [];
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', startupTimeoutMs: 5000, shutdownTimeoutMs: 150,
+    spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), 'host-alloc-fail', ...args], options); children.push(args); return child; } });
+  t.after(() => runtime.stop());
+  await assert.rejects(runtime.chat(options('hello')), /could not load the model file/);
+  assert.equal(children.length, 1);
+});
+test('an abort between recovery attempts stops the recovery', async t => {
+  const children = [], abort = new AbortController();
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', startupTimeoutMs: 5000, shutdownTimeoutMs: 150,
+    spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), 'gpu-fail', ...args], options); children.push(args); if (children.length === 1) child.once('exit', () => abort.abort()); return child; } });
+  t.after(() => runtime.stop());
+  await assert.rejects(runtime.chat({ ...options('hello'), signal: abort.signal }));
+  assert.equal(children.length, 1, 'no retry after the caller aborted');
 });

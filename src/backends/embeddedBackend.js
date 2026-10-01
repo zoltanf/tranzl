@@ -5,12 +5,12 @@ const { resourcePolicy } = require('./resourcePolicy');
 
 // getCompute: 'auto' | 'cpu', read when a runtime is created (so release() + preload() applies a change).
 function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = createServerRuntime, contextSize = resourcePolicy().contextSize, getCompute = () => 'auto' }) {
-  let runtime = null, selectedModel = null, status = { state: 'idle' }, statusCallback = null;
+  let runtime = null, selectedModel = null, status = { state: 'idle' }, statusCallback = null, devices;
   function publish(value) { status = value; statusCallback?.(value); }
   // Status always reflects the live runtime (effective context, compute, fallback), not the policy defaults.
   const snapshot = (state, extra = {}) => {
     const live = runtime?.state();
-    return { state, contextSize: live?.contextSize ?? contextSize, compute: live?.compute, fallback: live?.fallback ?? null, contextReduced: live?.contextReduced ?? null, ...extra };
+    return { state, contextSize: live?.contextSize ?? contextSize, compute: live?.compute, activeCompute: live?.activeCompute ?? null, devices: devices ?? null, fallback: live?.fallback ?? null, contextReduced: live?.contextReduced ?? null, ...extra };
   };
   function getRuntime(modelPath) {
     if (!modelPath) throw new Error('Download the embedded model in Settings first.');
@@ -23,9 +23,10 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
         prepareAssets: async options => {
           publish({ state: 'loading' });
           await assetManager.prepare({ ...options, dir, modelPath });
+          devices ??= await assetManager.listDevices?.(binary, { signal: options.signal }); // once per process
         },
         // The runtime may report a reduced effective context (see serverRuntime recovery).
-        onStatus: value => publish({ ...value, contextSize: value.contextSize ?? contextSize }),
+        onStatus: value => publish({ ...value, contextSize: value.contextSize ?? contextSize, devices: devices ?? null }),
       });
     }
     return runtime;

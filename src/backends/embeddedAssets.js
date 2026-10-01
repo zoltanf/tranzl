@@ -101,7 +101,8 @@ async function probeRuntime(binary, { signal, timeoutMs = 20000, execFileImpl = 
     if (signal?.aborted) throw signal.reason;
     const output = `${error.stderr || ''}\n${error.stdout || ''}\n${error.message}`;
     const detail = /version `?(GLIBCXX|CXXABI|GLIBC)_[\d.]+'? not found/i.test(output) ? 'This system\'s C/C++ runtime libraries are older than the inference runtime needs (for example Ubuntu 24.04 or newer is required).'
-      : /error while loading shared libraries|cannot open shared object|not found \(required by|The code execution cannot proceed|is not recognized|\.dll was not found/i.test(output) ? 'A library the inference runtime needs is missing on this system.'
+      : /error while loading shared libraries|cannot open shared object|not found \(required by|The code execution cannot proceed|is not recognized|\.dll was not found|Library not loaded|image not found/i.test(output)
+        || error.code === 3221225781 || error.code === -1073741515 ? 'A library the inference runtime needs is missing on this system.' // incl. dyld and STATUS_DLL_NOT_FOUND
       : error.code === 'ENOENT' ? 'The inference runtime executable is missing.'
       // SIGILL on Unix, STATUS_ILLEGAL_INSTRUCTION (0xC000001D) on Windows: the CPU lacks an instruction set the runtime needs.
       : error.signal === 'SIGILL' || error.code === 3221225501 || error.code === -1073741795 ? 'This computer\'s processor lacks instructions the inference runtime needs.'
@@ -109,6 +110,19 @@ async function probeRuntime(binary, { signal, timeoutMs = 20000, execFileImpl = 
       : `The inference runtime could not start (${error.code ?? error.signal ?? 'unknown error'}).`;
     throw new Error(`${detail} The embedded model cannot run here; use LM Studio or Ollama instead.`);
   }
+}
+// Compute devices the runtime sees, from `llama-server --list-devices` (model-free). llama.cpp
+// offloads all layers to the first GPU device by default, so under Automatic a listed GPU means
+// GPU inference; this avoids verbose server logs, which would also carry prompt text.
+function parseDevices(output) {
+  return [...output.matchAll(/^\s+([A-Za-z]+\d*):\s+(.+?)(?:\s+\(\d+ MiB.*\))?\s*$/gm)]
+    .map(([, name, description]) => ({ name, description, gpu: !/^(CPU|BLAS)/i.test(name) }));
+}
+async function listDevices(binary, { signal, timeoutMs = 20000, execFileImpl = execFile } = {}) {
+  try {
+    const { stdout, stderr } = await promisify(execFileImpl)(binary, ['--list-devices'], { signal, timeout: timeoutMs, maxBuffer: 1 << 20, windowsHide: true });
+    return parseDevices(`${stdout}\n${stderr}`);
+  } catch { return null; } // unknown, never fatal
 }
 // Acquisition plus probe: what must succeed before offering the model download.
 async function prepareRuntime(options) {
@@ -138,4 +152,4 @@ async function verifyRuntime(dir, files, signal) {
   }
   return true;
 }
-module.exports = { MODEL, PROJECTOR, VERSION, manifest, archiveFormats: Object.keys(EXTRACTORS), runtimeFor, unsupportedReason, availability, paths, ensureRuntime, probeRuntime, prepareRuntime, prepare, verifyRuntime, downloadModel: ({ dirPath, ...options }) => downloadVerified(MODEL, path.join(dirPath, MODEL.filename), options) };
+module.exports = { MODEL, PROJECTOR, VERSION, manifest, archiveFormats: Object.keys(EXTRACTORS), runtimeFor, unsupportedReason, availability, paths, ensureRuntime, probeRuntime, prepareRuntime, parseDevices, listDevices, prepare, verifyRuntime, downloadModel: ({ dirPath, ...options }) => downloadVerified(MODEL, path.join(dirPath, MODEL.filename), options) };

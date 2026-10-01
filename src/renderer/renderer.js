@@ -866,7 +866,8 @@ window.tranzl.onSetupEvent((event) => {
 window.tranzl.onBackendStatus((status) => {
   modelLoadState = status.state;
   // The embedded runtime fell back to the CPU after a GPU failure: slower, and worth knowing.
-  modelComputeNote = (status.fallback ? ' · on CPU (GPU initialization failed)' : status.compute === 'cpu' ? ' · CPU only' : '')
+  const gpu = status.devices?.find((d) => d.gpu);
+  modelComputeNote = (status.fallback ? ' · on CPU (GPU initialization failed)' : status.compute === 'cpu' ? ' · CPU only' : status.activeCompute === 'gpu' ? ' · on GPU' : status.activeCompute === 'cpu' ? ' · on CPU' : gpu ? ` · GPU (${gpu.description})` : status.devices ? ' · CPU' : '')
     + (status.contextReduced ? ` · ${status.contextReduced.to.toLocaleString()}-token context (memory was short for ${status.contextReduced.from.toLocaleString()})` : '');
   if (status.state === 'error' && status.error) {
     setStatus(`Model failed to load: ${status.error}`, 'error');

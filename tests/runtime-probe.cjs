@@ -36,3 +36,17 @@ test('an illegal-instruction crash is reported as an unsupported processor', asy
   if (process.platform === 'win32') return; // signals differ; the Windows status code path is covered by the constant
   await assert.rejects(probeRuntime(binary, { execFileImpl }), /processor lacks instructions/);
 });
+test('Windows loader status codes are classified without a real crash', async () => {
+  const failing = code => (_bin, _args, _options, callback) => callback(Object.assign(new Error('spawn failed'), { code, stdout: '', stderr: '' }));
+  await assert.rejects(probeRuntime('fake.exe', { execFileImpl: failing(3221225501) }), /processor lacks instructions/);
+  await assert.rejects(probeRuntime('fake.exe', { execFileImpl: failing(3221225781) }), /library the inference runtime needs is missing/);
+});
+test('device listing identifies GPU devices and tolerates failure', async t => {
+  const { parseDevices, listDevices } = require('../src/backends/embeddedAssets');
+  const mac = parseDevices('0.00.005 I srv  llama_server: initializing ...\nAvailable devices:\n  MTL0: Apple M5 Pro (53084 MiB, 53083 MiB free)\n  BLAS: Accelerate (0 MiB, 0 MiB free)\n');
+  assert.deepEqual(mac, [{ name: 'MTL0', description: 'Apple M5 Pro', gpu: true }, { name: 'BLAS', description: 'Accelerate', gpu: false }]);
+  assert.deepEqual(parseDevices('Available devices:\n  CPU: AMD EPYC (0 MiB, 0 MiB free)\n').map(d => d.gpu), [false]);
+  assert.deepEqual(parseDevices('Available devices:\n  CUDA0: NVIDIA RTX 4070 (12282 MiB, 11000 MiB free)\n  Vulkan0: Intel Arc (8000 MiB, 7000 MiB free)\n').map(d => [d.name, d.gpu]), [['CUDA0', true], ['Vulkan0', true]]);
+  const { binary, execFileImpl } = fake(t, `process.exit(3);`);
+  assert.equal(await listDevices(binary, { execFileImpl }), null);
+});
