@@ -6,6 +6,8 @@ const key = args.includes('--api-key-file') ? fs.readFileSync(arg('--api-key-fil
 if (process.argv[2] === 'ignore-term') process.on('SIGTERM', () => {});
 // gpu-fail: a GPU that cannot allocate, until started CPU-only. load-fail: a damaged model.
 if (process.argv[2] === 'gpu-fail' && !args.includes('--gpu-layers')) { console.error('ggml_metal_device_init: failed to allocate Metal buffer of 4000000000 bytes (out of memory)'); process.exit(1); }
+// context-fail: the full context cannot be allocated; the floor (4096) works.
+if (process.argv[2] === 'context-fail-always' || (process.argv[2] === 'context-fail' && Number(arg('--ctx-size')) > 4096)) { console.error("llama_init_from_model: failed to create context with model 'fixture.gguf'"); process.exit(1); }
 if (process.argv[2] === 'load-fail') { console.error('llama_model_load: error loading model: tensor data is corrupt'); process.exit(1); }
 if (process.argv[2] === 'hang') { setInterval(() => {}, 1000); }
 else http.createServer(async (req, res) => {

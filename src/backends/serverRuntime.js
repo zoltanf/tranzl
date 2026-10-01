@@ -64,6 +64,9 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
   let child = null, endpoint = null, key = null, mediaLoaded = false;
   let exited = null, processAbort = null, queue = Promise.resolve(), stopping = null;
   let diagnostics = {}, compute = gpu, fallback = null;
+  // Effective context: reduced once to the floor if the model context cannot be allocated.
+  const CONTEXT_FLOOR = 4096;
+  let effectiveContext = contextSize, contextReduced = null;
   const jobs = new Set();
   const headers = () => ({ Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' });
 
@@ -90,15 +93,22 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     await prepareAssets({ signal, media, onStatus: report });
     if (child) await terminate();
     signal.throwIfAborted();
-    try { await start(signal, media, report); }
-    catch (error) {
-      // One bounded retry in a fresh CPU-only process when the GPU path failed to initialize.
-      // Nothing has been streamed at this point, so no answer is ever replayed.
-      const kind = error.startupFailure;
-      if (compute !== 'auto' || !['gpu-init', 'gpu-memory'].includes(kind) || signal.aborted) throw error;
-      compute = 'cpu'; fallback = { kind, from: 'auto' };
-      report('GPU initialization failed; starting on the CPU instead…');
-      await start(signal, media, report);
+    // Bounded recovery, each step at most once, all before any output exists so nothing is
+    // replayed: a GPU failure under automatic selection → fresh CPU-only process; a model
+    // context that cannot be allocated → the floor context size.
+    for (;;) {
+      try { await start(signal, media, report); return; }
+      catch (error) {
+        const kind = error.startupFailure;
+        if (signal.aborted) throw error;
+        if (compute === 'auto' && ['gpu-init', 'gpu-memory'].includes(kind)) {
+          compute = 'cpu'; fallback = { kind, from: 'auto' };
+          report('GPU initialization failed; starting on the CPU instead…');
+        } else if (kind === 'context' && effectiveContext > CONTEXT_FLOOR && !contextReduced) {
+          contextReduced = { from: effectiveContext, to: CONTEXT_FLOOR }; effectiveContext = CONTEXT_FLOOR;
+          report(`Not enough memory for a ${contextSize.toLocaleString('en-US')}-token context; retrying with ${CONTEXT_FLOOR.toLocaleString('en-US')}…`);
+        } else throw error;
+      }
     }
   }
 
@@ -113,7 +123,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     fs.writeFileSync(keyFile, key + '\n', { mode: 0o600 });
     const url = `http://127.0.0.1:${port}`;
     const args = ['--model', modelPath, '--host', '127.0.0.1', '--port', String(port),
-      '--api-key-file', keyFile, '--ctx-size', String(contextSize), '--parallel', '1', '--jinja',
+      '--api-key-file', keyFile, '--ctx-size', String(effectiveContext), '--parallel', '1', '--jinja',
       '--no-webui', '--offline', '--no-context-shift', '--reasoning-format', 'deepseek'];
     if (media) args.push('--mmproj', projectorPath);
     else args.push('--no-mmproj');
@@ -154,7 +164,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       current.once('error', finish); current.once('exit', () => finish());
     });
     const startup = AbortSignal.any([signal, ownerAbort.signal, AbortSignal.timeout(startupTimeoutMs)]);
-    onStatus({ state: 'loading', media, pid: current.pid, compute, fallback });
+    onStatus({ state: 'loading', media, pid: current.pid, compute, fallback, contextSize: effectiveContext, contextReduced });
     report(media ? 'Loading image/audio model…' : 'Loading embedded model…');
     try {
       await new Promise((resolve, reject) => {
@@ -173,7 +183,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
         } catch { startup.throwIfAborted(); }
         await delay(50, undefined, { signal: startup });
       }
-      onStatus({ state: 'ready', media, pid: current.pid, compute, fallback });
+      onStatus({ state: 'ready', media, pid: current.pid, compute, fallback, contextSize: effectiveContext, contextReduced });
     } catch (error) {
       removeKey(); await terminate();
       const kinds = { 'gpu-memory': 'The GPU ran out of memory while loading the model.', 'gpu-init': 'The GPU could not be initialized for inference.',
@@ -254,7 +264,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     const outputTokens = usage?.completion_tokens ?? timings?.predicted_n ?? null;
     return { inputTokens, outputTokens, inputLabel: 'Prompt tokens',
       cachedTokens: usage?.prompt_tokens_details?.cached_tokens ?? timings?.cache_n ?? null,
-      contextSize, contextTokens: inputTokens != null && outputTokens != null ? inputTokens + outputTokens : null,
+      contextSize: effectiveContext, contextTokens: inputTokens != null && outputTokens != null ? inputTokens + outputTokens : null,
       contextEstimated: true, tps: timings?.predicted_per_second ?? null, firstTokenSeconds,
       elapsedSeconds: (performance.now() - started) / 1000,
       ...(occupied ? { contextTokens: occupied.contextTokens, contextSize: occupied.contextSize, contextEstimated: false } : {}) };
@@ -300,7 +310,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       stopping = (async () => { await queue; await terminate(); })().finally(() => { stopping = null; });
       return stopping;
     },
-    state: () => ({ pid: child?.pid ?? null, ready: Boolean(endpoint), mediaLoaded, compute, fallback, diagnostics: { ...diagnostics } }),
+    state: () => ({ pid: child?.pid ?? null, ready: Boolean(endpoint), mediaLoaded, compute, fallback, contextSize: effectiveContext, contextReduced, diagnostics: { ...diagnostics } }),
   };
 }
 module.exports = { createServerRuntime, readCompletion };

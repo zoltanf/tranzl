@@ -143,3 +143,7 @@ Not shown by this stage: GPU acceleration on Windows/Linux, behaviour on 8 GB ma
 ## Stage E memory policy evaluation
 
 The 12 GB-tier policy (4,096-token context) was run through the full 17-case harness on the Mac with `--total-memory-gib=12`: 17/17, the server reported a 4,096 context, the near-limit case compacted 10,455 tokens to fit a 1,843-token target, and peak summed RSS was 5.7 GiB (5.3 text-only) against 5.9 GiB at 8,192. Evidence: `runtime-evidence/2026-10-01/mac-12gb-tier.json`. CI repeats the tier on Windows x64 and Ubuntu 24.04 x64 (`report-12gb-tier.json` in those runners' evidence) to measure the CPU-class peak at 4,096; those runners have 16 GB, so this measures the smaller footprint, not behaviour under real memory pressure on a 12 GB machine.
+
+## Stage E recovery paths
+
+CPU-only flags (`--gpu-layers 0 --no-mmproj-offload`), as used by the Settings choice and by the automatic fallback after a GPU initialization failure, passed the full 17-case harness on the Mac with `--compute=cpu`: 49.8 tok/s on the M5 Pro CPU, peak summed RSS 8.75 GiB against 5.9 GiB with Metal (`runtime-evidence/2026-10-01/mac-cpu-only.json`). The fallback and context-reduction decisions themselves are exercised with fixture servers that reproduce llama.cpp's exact failure lines; real GPU failures need GPU hardware and remain unvalidated.

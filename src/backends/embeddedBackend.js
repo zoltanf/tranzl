@@ -18,7 +18,8 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
           publish({ state: 'loading' });
           await assetManager.prepare({ ...options, dir, modelPath });
         },
-        onStatus: value => publish({ ...value, contextSize }),
+        // The runtime may report a reduced effective context (see serverRuntime recovery).
+        onStatus: value => publish({ ...value, contextSize: value.contextSize ?? contextSize }),
       });
     }
     return runtime;

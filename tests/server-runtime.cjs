@@ -170,3 +170,24 @@ test('a damaged model is explained and never triggers a CPU retry; an explicit C
     assert.equal(runtime.state().fallback, null);
   }
 });
+
+test('a context that cannot be allocated is retried once at the 4,096 floor and reported', async t => {
+  const statuses = [], children = [];
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', contextSize: 8192, startupTimeoutMs: 5000, shutdownTimeoutMs: 150, onStatus: s => statuses.push(s),
+    spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), 'context-fail', ...args], options); children.push(args); return child; } });
+  t.after(() => runtime.stop());
+  const result = await runtime.chat(options('hello'));
+  assert.equal(result.translation, 'hello');
+  assert.deepEqual(children.map(args => args[args.indexOf('--ctx-size') + 1]), ['8192', '4096']);
+  assert.deepEqual([runtime.state().contextSize, runtime.state().contextReduced], [4096, { from: 8192, to: 4096 }]);
+  assert.ok(statuses.some(s => s.state === 'ready' && s.contextSize === 4096 && s.contextReduced?.from === 8192));
+  assert.equal(runtime.state().fallback, null, 'compute unchanged');
+});
+test('at the floor already, a context failure is a clear error with no retry', async t => {
+  const children = [];
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', contextSize: 4096, startupTimeoutMs: 5000, shutdownTimeoutMs: 150,
+    spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), 'context-fail-always', ...args], options); children.push(args); return child; } });
+  t.after(() => runtime.stop());
+  await assert.rejects(runtime.chat(options('hello')), /not enough memory to create the model context/);
+  assert.equal(children.length, 1);
+});
