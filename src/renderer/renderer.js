@@ -67,6 +67,7 @@ let lastRequestText = ''; // source text of the in-flight request, for history
 let translating = false;
 let setupInfo = null;
 let modelLoadState = 'idle'; // embedded model: idle | loading | ready | error
+let modelComputeNote = ''; // e.g. running on the CPU after a GPU failure
 
 let lastOkStatus = 'Ready';
 function setStatus(text, kind = '') {
@@ -92,7 +93,7 @@ function setIdleStatus() {
     } else if (modelLoadState === 'error') {
       setStatus('Model failed to load — see Model & Backend tab', 'error');
     } else {
-      setStatus(`Ready · ${setupInfo.modelLabel}`, 'ok');
+      setStatus(`Ready · ${setupInfo.modelLabel}${modelComputeNote}`, 'ok');
     }
   }
 }
@@ -853,6 +854,8 @@ window.tranzl.onSetupEvent((event) => {
 // Load progress of the embedded model (runs in a background process)
 window.tranzl.onBackendStatus((status) => {
   modelLoadState = status.state;
+  // The embedded runtime fell back to the CPU after a GPU failure: slower, and worth knowing.
+  modelComputeNote = status.fallback ? ' · on CPU (GPU initialization failed)' : '';
   if (status.state === 'error' && status.error) {
     setStatus(`Model failed to load: ${status.error}`, 'error');
     return;

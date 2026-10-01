@@ -50,12 +50,20 @@ async function readCompletion(body, { signal, onChunk = () => {}, onThought = ()
   return { translation, usage, timings, firstTokenSeconds };
 }
 
+// Startup log lines are classified into a kind and then discarded (raw logs are never kept).
+// Exact prefixes from llama.cpp b11158: ggml-cuda.cu, ggml-vulkan.cpp, ggml-metal-device.m, llama.cpp.
+const STARTUP_FAILURES = [
+  ['gpu-memory', /failed to allocate Metal buffer|CUDA error: out of memory|ErrorOutOfDeviceMemory|OutOfDeviceMemory|failed to allocate pinned memory|Failed to allocate pinned memory|failed to allocate buffer, size =/i],
+  ['gpu-init', /CUDA error:|ggml_vulkan: (Error|device lost)|ggml_cuda_init|failed to create command queue|failed to initialize residency set|failed to create (Metal library|pipeline state)|failed to initialize backend|Compute pipeline creation failed/i],
+  ['model-load', /error loading model|failed to load model|failed to load GGUF split|error loading model (hyperparameters|vocabulary)/i],
+  ['context', /failed to create context with model|failed to create ggml context|failed to allocate context/i],
+];
 function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8192,
   gpu = 'auto', swaFullCache = true, startupTimeoutMs = 120000, shutdownTimeoutMs = 3000,
   spawnProcess = spawn, onStatus = () => {}, prepareAssets = async () => {} }) {
   let child = null, endpoint = null, key = null, mediaLoaded = false;
   let exited = null, processAbort = null, queue = Promise.resolve(), stopping = null;
-  let diagnostics = {};
+  let diagnostics = {}, compute = gpu, fallback = null;
   const jobs = new Set();
   const headers = () => ({ Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' });
 
@@ -82,6 +90,19 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     await prepareAssets({ signal, media, onStatus: report });
     if (child) await terminate();
     signal.throwIfAborted();
+    try { await start(signal, media, report); }
+    catch (error) {
+      // One bounded retry in a fresh CPU-only process when the GPU path failed to initialize.
+      // Nothing has been streamed at this point, so no answer is ever replayed.
+      const kind = error.startupFailure;
+      if (compute !== 'auto' || !['gpu-init', 'gpu-memory'].includes(kind) || signal.aborted) throw error;
+      compute = 'cpu'; fallback = { kind, from: 'auto' };
+      report('GPU initialization failed; starting on the CPU instead…');
+      await start(signal, media, report);
+    }
+  }
+
+  async function start(signal, media, report) {
     const port = await freePort();
     signal.throwIfAborted();
     key = crypto.randomBytes(32).toString('hex');
@@ -96,7 +117,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       '--no-webui', '--offline', '--no-context-shift', '--reasoning-format', 'deepseek'];
     if (media) args.push('--mmproj', projectorPath);
     else args.push('--no-mmproj');
-    if (gpu === 'cpu') args.push('--gpu-layers', '0', '--no-mmproj-offload');
+    if (compute === 'cpu') args.push('--gpu-layers', '0', '--no-mmproj-offload');
     if (swaFullCache) args.push('--swa-full');
     processAbort = new AbortController();
     const ownerAbort = processAbort;
@@ -108,13 +129,15 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     // another process that took the port between freePort() and spawn.
     let heard; const listening = new Promise(resolve => { heard = resolve; });
     // Retain only recognized compute counters, never raw runtime logs/prompts.
-    diagnostics = { requestedGpu: gpu, swaFullCache };
+    diagnostics = { requestedGpu: gpu, compute, fallback, swaFullCache };
+    let failureKind = null;
     for (const stream of [current.stdout, current.stderr]) {
       let tail = '';
       stream?.on('data', chunk => {
         const lines = (tail + chunk.toString()).split('\n'); tail = lines.pop().slice(-1024);
         for (const line of lines) {
           if (line.includes(`listening on ${url}`)) heard();
+          if (!endpoint && !failureKind) failureKind = STARTUP_FAILURES.find(([, pattern]) => pattern.test(line))?.[0] ?? null;
           const layers = line.match(/offloaded (\d+)\/(\d+) layers to GPU/);
           if (layers) { diagnostics.offloadedLayers = Number(layers[1]); diagnostics.totalLayers = Number(layers[2]); }
           const backend = line.match(/\b(Metal\d*|CUDA\d*|Vulkan\d*|CPU)(?:_Mapped)?\s+model buffer size/);
@@ -131,7 +154,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       current.once('error', finish); current.once('exit', () => finish());
     });
     const startup = AbortSignal.any([signal, ownerAbort.signal, AbortSignal.timeout(startupTimeoutMs)]);
-    onStatus({ state: 'loading', media, pid: current.pid });
+    onStatus({ state: 'loading', media, pid: current.pid, compute, fallback });
     report(media ? 'Loading image/audio model…' : 'Loading embedded model…');
     try {
       await new Promise((resolve, reject) => {
@@ -150,8 +173,15 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
         } catch { startup.throwIfAborted(); }
         await delay(50, undefined, { signal: startup });
       }
-      onStatus({ state: 'ready', media, pid: current.pid });
-    } catch (error) { removeKey(); await terminate(); throw error; }
+      onStatus({ state: 'ready', media, pid: current.pid, compute, fallback });
+    } catch (error) {
+      removeKey(); await terminate();
+      const kinds = { 'gpu-memory': 'The GPU ran out of memory while loading the model.', 'gpu-init': 'The GPU could not be initialized for inference.',
+        'model-load': 'The model file could not be loaded; it may be damaged. Download it again in Settings.', context: 'There was not enough memory to create the model context.' };
+      const described = failureKind ? new Error(`${kinds[failureKind]} (${error.message})`) : error;
+      described.startupFailure = failureKind;
+      throw described;
+    }
   }
 
   function enqueue(signal, run) {
@@ -270,7 +300,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       stopping = (async () => { await queue; await terminate(); })().finally(() => { stopping = null; });
       return stopping;
     },
-    state: () => ({ pid: child?.pid ?? null, ready: Boolean(endpoint), mediaLoaded, diagnostics: { ...diagnostics } }),
+    state: () => ({ pid: child?.pid ?? null, ready: Boolean(endpoint), mediaLoaded, compute, fallback, diagnostics: { ...diagnostics } }),
   };
 }
 module.exports = { createServerRuntime, readCompletion };

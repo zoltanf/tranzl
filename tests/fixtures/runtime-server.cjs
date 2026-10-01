@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const args = process.argv.slice(3), arg = name => args[args.indexOf(name) + 1];
 const key = args.includes('--api-key-file') ? fs.readFileSync(arg('--api-key-file'), 'utf8').trim() : undefined;
 if (process.argv[2] === 'ignore-term') process.on('SIGTERM', () => {});
+// gpu-fail: a GPU that cannot allocate, until started CPU-only. load-fail: a damaged model.
+if (process.argv[2] === 'gpu-fail' && !args.includes('--gpu-layers')) { console.error('ggml_metal_device_init: failed to allocate Metal buffer of 4000000000 bytes (out of memory)'); process.exit(1); }
+if (process.argv[2] === 'load-fail') { console.error('llama_model_load: error loading model: tensor data is corrupt'); process.exit(1); }
 if (process.argv[2] === 'hang') { setInterval(() => {}, 1000); }
 else http.createServer(async (req, res) => {
   if (process.env.TRANZL_FIXTURE_REQUESTS) fs.appendFileSync(process.env.TRANZL_FIXTURE_REQUESTS, req.url + '\n');

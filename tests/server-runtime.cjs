@@ -141,3 +141,32 @@ test('nothing is sent to the port until our own server announces it is listening
   const keyFile = children[0].args[children[0].args.indexOf('--api-key-file') + 1];
   assert.equal(fs.existsSync(path.dirname(keyFile)), false, 'key folder removed after a failed start');
 });
+
+test('a GPU that fails to initialize gets one fresh CPU-only retry, reported in status', async t => {
+  const statuses = [];
+  const children = [];
+  const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', startupTimeoutMs: 5000, shutdownTimeoutMs: 150, onStatus: s => statuses.push(s),
+    spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), 'gpu-fail', ...args], options); children.push({ child, args }); return child; } });
+  t.after(() => runtime.stop());
+  const result = await runtime.chat(options('hello'));
+  assert.equal(result.translation, 'hello');
+  assert.equal(children.length, 2, 'exactly one retry');
+  assert.ok(!children[0].args.includes('--gpu-layers') && children[1].args.includes('--gpu-layers'), 'retry is CPU-only');
+  const state = runtime.state();
+  assert.equal(state.compute, 'cpu'); assert.deepEqual(state.fallback, { kind: 'gpu-memory', from: 'auto' });
+  assert.ok(statuses.some(s => s.state === 'ready' && s.compute === 'cpu' && s.fallback?.kind === 'gpu-memory'));
+  // A later request reuses the CPU server; no third process.
+  await runtime.chat(options('again')); assert.equal(children.length, 2);
+});
+test('a damaged model is explained and never triggers a CPU retry; an explicit CPU runtime never retries', async t => {
+  for (const [mode, gpu] of [['load-fail', 'auto'], ['gpu-fail', 'cpu']]) {
+    const children = [];
+    const runtime = createServerRuntime({ binary: 'fixture', modelPath: 'fixture.gguf', gpu, startupTimeoutMs: 5000, shutdownTimeoutMs: 150,
+      spawnProcess: (_binary, args, options) => { const child = spawn(process.execPath, [path.join(__dirname, 'fixtures/runtime-server.cjs'), mode, ...args], options); children.push(args); return child; } });
+    t.after(() => runtime.stop());
+    if (mode === 'load-fail') await assert.rejects(runtime.chat(options('hello')), /model file could not be loaded.*Download it again/);
+    else await runtime.chat(options('hello')); // CPU from the start works first time
+    assert.equal(children.length, 1, `${mode}: no retry`);
+    assert.equal(runtime.state().fallback, null);
+  }
+});
