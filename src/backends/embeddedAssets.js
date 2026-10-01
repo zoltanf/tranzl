@@ -103,6 +103,8 @@ async function probeRuntime(binary, { signal, timeoutMs = 20000, execFileImpl = 
     const detail = /version `?(GLIBCXX|CXXABI|GLIBC)_[\d.]+'? not found/i.test(output) ? 'This system\'s C/C++ runtime libraries are older than the inference runtime needs (for example Ubuntu 24.04 or newer is required).'
       : /error while loading shared libraries|cannot open shared object|not found \(required by|The code execution cannot proceed|is not recognized|\.dll was not found/i.test(output) ? 'A library the inference runtime needs is missing on this system.'
       : error.code === 'ENOENT' ? 'The inference runtime executable is missing.'
+      // SIGILL on Unix, STATUS_ILLEGAL_INSTRUCTION (0xC000001D) on Windows: the CPU lacks an instruction set the runtime needs.
+      : error.signal === 'SIGILL' || error.code === 3221225501 || error.code === -1073741795 ? 'This computer\'s processor lacks instructions the inference runtime needs.'
       : error.killed || error.code === 'ETIMEDOUT' ? 'The inference runtime did not respond in time.'
       : `The inference runtime could not start (${error.code ?? error.signal ?? 'unknown error'}).`;
     throw new Error(`${detail} The embedded model cannot run here; use LM Studio or Ollama instead.`);

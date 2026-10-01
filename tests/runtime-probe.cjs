@@ -31,3 +31,8 @@ test('a hanging runtime is bounded by the timeout', async t => {
   const { binary, execFileImpl } = fake(t, `setInterval(() => {}, 1000);`);
   await assert.rejects(probeRuntime(binary, { execFileImpl, timeoutMs: 500 }), /did not respond in time/);
 });
+test('an illegal-instruction crash is reported as an unsupported processor', async t => {
+  const { binary, execFileImpl } = fake(t, `process.kill(process.pid, 'SIGILL');`);
+  if (process.platform === 'win32') return; // signals differ; the Windows status code path is covered by the constant
+  await assert.rejects(probeRuntime(binary, { execFileImpl }), /processor lacks instructions/);
+});

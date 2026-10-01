@@ -186,7 +186,9 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
       onStatus({ state: 'ready', media, pid: current.pid, compute, fallback, contextSize: effectiveContext, contextReduced });
     } catch (error) {
       removeKey(); await terminate();
+      if (!failureKind && (current.signalCode === 'SIGILL' || current.exitCode === 3221225501 || current.exitCode === -1073741795)) failureKind = 'cpu-unsupported';
       const kinds = { 'gpu-memory': 'The GPU ran out of memory while loading the model.', 'gpu-init': 'The GPU could not be initialized for inference.',
+        'cpu-unsupported': 'This computer\'s processor lacks instructions the inference runtime needs; the embedded model cannot run here.',
         'model-load': 'The model file could not be loaded; it may be damaged. Download it again in Settings.', context: 'There was not enough memory to create the model context.' };
       const described = failureKind ? new Error(`${kinds[failureKind]} (${error.message})`) : error;
       described.startupFailure = failureKind;
