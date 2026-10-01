@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('tranzl', {
   onBackendStatus: (callback) =>
     ipcRenderer.on('backend-status', (_event, data) => callback(data)),
   setTheme: (theme) => ipcRenderer.invoke('set-theme', theme),
+  setCompute: (mode) => ipcRenderer.invoke('set-compute', mode),
   cancelTranslate: () => ipcRenderer.invoke('cancel-translate'),
   loadHistory: () => ipcRenderer.invoke('history-load'),
   saveHistory: (entries) => ipcRenderer.invoke('history-save', entries),

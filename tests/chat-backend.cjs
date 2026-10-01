@@ -167,3 +167,14 @@ test('the model download is refused when the runtime cannot start on this system
   assert.equal(result.ok, false); assert.match(result.error, /cannot run here/);
   assert.ok(h.events.some(e => e.channel === 'setup-event' && e.type === 'error' && /cannot run here/.test(e.error)));
 });
+
+test('CPU-only compute is saved, applied by restarting the runtime, and validated', async () => {
+  const h = harness('local'), local = h.local, calls = [];
+  local.isReady = () => true; local.setCompute = mode => calls.push(['set', mode]); local.release = async () => { calls.push(['release']); }; local.preload = () => calls.push(['preload']);
+  const settings = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'tranzl-compute-'));
+  h.setUserData?.(settings);
+  assert.equal((await h.handlers.get('set-compute')(h.event, 'gpu')).ok, false);
+  assert.deepEqual(calls, []);
+  assert.equal((await h.handlers.get('set-compute')(h.event, 'cpu')).ok, true);
+  assert.deepEqual(calls, [['set', 'cpu'], ['release'], ['preload']], 'release before preload so the new mode applies');
+});

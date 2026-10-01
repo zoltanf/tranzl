@@ -1,9 +1,9 @@
 // Lazy facade: external backends can launch without loading embedded assets.
 const path = require('node:path');
 const { createEmbeddedBackend } = require('./embeddedBackend');
-let backend;
+let backend, compute = 'auto';
 function service() {
-  backend ??= createEmbeddedBackend({ dir: path.join(require('electron').app.getPath('userData'), 'multimodal') });
+  backend ??= createEmbeddedBackend({ dir: path.join(require('electron').app.getPath('userData'), 'multimodal'), getCompute: () => compute });
   return backend;
 }
 module.exports = {
@@ -19,4 +19,7 @@ module.exports = {
   translate: options => service().translate(options),
   countTokens: options => service().countTokens(options),
   release: async () => { await backend?.release(); },
+  // 'auto' | 'cpu'; takes effect when the runtime is next created (release() then preload()).
+  setCompute: mode => { compute = mode; },
+  compute: () => compute,
 };

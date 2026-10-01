@@ -72,6 +72,9 @@ app.whenReady().then(async () => {
     replace('get-setup', () => ({ backend: 'lmstudio', theme: 'dark', modelReady: false, modelLabel: 'Test model', embeddedUnavailable: 'Embedded inference on this system needs glibc 2.38 or newer (for example Ubuntu 24.04); this system has 2.35. Use LM Studio or Ollama instead.' }));
     assert.match(await run(`document.getElementById('chat-attach').title`), /up to 8 files, 20 MB each/);
     assert.equal(await run(`document.getElementById('source').title`), `${process.platform === 'darwin' ? '⌘↩' : 'Ctrl+Enter'} runs immediately`);
+    // The embedded compute choice exists but is hidden for external backends.
+    assert.equal(await run(`document.getElementById('compute-picker').classList.contains('hidden')`), true);
+    assert.deepEqual(await run(`[...document.getElementById('compute-select').options].map(o => o.value)`), ['auto', 'cpu']);
     await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-attach').click()`);
     await waitFor(`document.querySelectorAll('#chat-attachments button').length === 3`);
     await waitFor(`document.querySelector('#chat-attachments img').naturalWidth === 40`);

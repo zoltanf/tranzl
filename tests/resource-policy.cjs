@@ -48,3 +48,14 @@ test('the embedded backend takes its context size from the policy', async () => 
   } finally { delete process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB; }
   assert.deepEqual(seen, [REDUCED_CONTEXT]);
 });
+
+test('the embedded backend reads the compute mode whenever it creates a runtime', async () => {
+  const { createEmbeddedBackend } = require('../src/backends/embeddedBackend');
+  let compute = 'auto'; const seen = [];
+  const backend = createEmbeddedBackend({ dir: '/tmp/x', contextSize: 8192, getCompute: () => compute, assetManager: { paths: () => ({ binary: 'b', projector: 'p' }), prepare: async () => {} },
+    makeRuntime: options => { seen.push(options.gpu); return { load: async () => {}, state: () => ({ ready: true }), stop: async () => {} }; } });
+  await backend.preload('/tmp/model.gguf');
+  compute = 'cpu'; await backend.preload('/tmp/model.gguf'); // same runtime: unchanged until released
+  await backend.release(); await backend.preload('/tmp/model.gguf');
+  assert.deepEqual(seen, ['auto', 'cpu']);
+});

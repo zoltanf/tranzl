@@ -94,6 +94,8 @@ app.whenReady().then(async () => {
     if (args.projector) report.projectorSha256 = await digest(args.projector);
     if (args.backend === 'embedded') {
       const local = appRequire('./src/backends/local');
+      if (args.compute) local.setCompute(args.compute); // --compute=cpu runs the CPU-only path
+      report.compute = args.compute || 'auto';
       const assets = appRequire('./src/backends/embeddedAssets'), dir = path.join(profile, 'multimodal');
       fs.mkdirSync(dir, { recursive: true });
       report.runtimeTarget = `${process.platform}-${process.arch}`; report.runtimeArchiveSha256 = assets.runtimeFor().sha256;

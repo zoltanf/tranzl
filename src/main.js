@@ -242,6 +242,7 @@ ipc.handle('get-setup', () => ({
   // and a note when it runs with a reduced context.
   embeddedUnavailable: local.availability().reason ?? null,
   embeddedNote: local.availability().note ?? null,
+  embeddedCompute: local.compute(),
   // Load state of the embedded model ('idle'|'loading'|'ready'|'error') so
   // the renderer shows the right status even if it missed earlier events
   modelState: local.modelState().state,
@@ -250,6 +251,20 @@ ipc.handle('get-setup', () => ({
 
 // Theme is applied through nativeTheme: it drives prefers-color-scheme in
 // the renderer (which the CSS keys off) and keeps the window chrome in sync
+// Embedded compute selection: automatic (GPU where available) or CPU only. Applying it
+// restarts the embedded runtime; in-flight work is aborted first like on quit.
+ipc.handle('set-compute', async (_event, mode) => {
+  if (!['auto', 'cpu'].includes(mode)) return { ok: false, error: `unknown compute mode: ${mode}` };
+  saveSettings({ embeddedCompute: mode });
+  local.setCompute(mode);
+  if (settings.backend === 'local' && local.isReady(settings.localModelPath)) {
+    chatRequest.abort?.abort(); translationRequest.abort?.abort();
+    await local.release();
+    local.preload(settings.localModelPath, forwardModelStatus);
+  }
+  return { ok: true };
+});
+
 ipc.handle('set-theme', (_event, theme) => {
   if (!['system', 'light', 'dark'].includes(theme)) {
     return { ok: false, error: `unknown theme: ${theme}` };
@@ -797,6 +812,7 @@ ipc.handle('chat-stop', () => { chatRequest.abort?.abort(); });
 
 app.whenReady().then(() => {
   loadSettings();
+  local.setCompute(['auto', 'cpu'].includes(settings.embeddedCompute) ? settings.embeddedCompute : 'auto');
   // Apply the stored theme before the window exists to avoid a wrong-theme flash
   nativeTheme.themeSource = ['light', 'dark'].includes(settings.theme) ? settings.theme : 'system';
   createWindow();

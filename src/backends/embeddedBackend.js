@@ -3,7 +3,8 @@ const { createServerRuntime } = require('./serverRuntime');
 const assets = require('./embeddedAssets');
 const { resourcePolicy } = require('./resourcePolicy');
 
-function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = createServerRuntime, contextSize = resourcePolicy().contextSize }) {
+// getCompute: 'auto' | 'cpu', read when a runtime is created (so release() + preload() applies a change).
+function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = createServerRuntime, contextSize = resourcePolicy().contextSize, getCompute = () => 'auto' }) {
   let runtime = null, selectedModel = null, status = { state: 'idle' }, statusCallback = null;
   function publish(value) { status = value; statusCallback?.(value); }
   function getRuntime(modelPath) {
@@ -12,7 +13,7 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
     if (!runtime) {
       const { binary, projector } = assetManager.paths(dir);
       selectedModel = modelPath;
-      runtime = makeRuntime({ binary, projectorPath: projector, modelPath, contextSize,
+      runtime = makeRuntime({ binary, projectorPath: projector, modelPath, contextSize, gpu: getCompute(),
         prepareAssets: async options => {
           publish({ state: 'loading' });
           await assetManager.prepare({ ...options, dir, modelPath });

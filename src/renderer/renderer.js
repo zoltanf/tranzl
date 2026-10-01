@@ -25,6 +25,8 @@ const customEditBtn = document.getElementById('custom-edit-btn');
 const backendBtn = document.getElementById('backend-btn');
 const backendLabelEl = document.getElementById('backend-label');
 const themeEl = document.getElementById('theme-select');
+const computeEl = document.getElementById('compute-select');
+const computePickerEls = [document.getElementById('compute-picker'), document.getElementById('compute-picker-sep')];
 const unwrapPasteEl = document.getElementById('unwrap-paste');
 
 const overlayEl = document.getElementById('setup-overlay');
@@ -740,6 +742,11 @@ if (localStorage.getItem('tranzl.thinkingCollapsed') === '1') {
 
 // Theme is stored and applied in the main process (nativeTheme), which
 // drives the prefers-color-scheme media query this page's CSS keys off
+computeEl.addEventListener('change', async () => {
+  const result = await window.tranzl.setCompute(computeEl.value);
+  if (!result.ok) setStatus(result.error, 'error');
+});
+
 themeEl.addEventListener('change', () => {
   window.tranzl.setTheme(themeEl.value);
 });
@@ -784,6 +791,7 @@ function formatGB(bytes) {
 
 function applyBackend(backend) {
   document.body.classList.toggle('local-backend', backend === 'local');
+  for (const el of computePickerEls) el.classList.toggle('hidden', backend !== 'local');
   backendLabelEl.textContent = BACKEND_NAMES[backend] ?? '—';
   statusbarBackendEl.textContent =
     backend === 'local' ? `Embedded · ${setupInfo.modelLabel.replace(' (embedded)', '')}` : BACKEND_NAMES[backend];
@@ -855,7 +863,7 @@ window.tranzl.onSetupEvent((event) => {
 window.tranzl.onBackendStatus((status) => {
   modelLoadState = status.state;
   // The embedded runtime fell back to the CPU after a GPU failure: slower, and worth knowing.
-  modelComputeNote = status.fallback ? ' · on CPU (GPU initialization failed)' : '';
+  modelComputeNote = status.fallback ? ' · on CPU (GPU initialization failed)' : status.compute === 'cpu' ? ' · CPU only' : '';
   if (status.state === 'error' && status.error) {
     setStatus(`Model failed to load: ${status.error}`, 'error');
     return;
@@ -924,6 +932,7 @@ async function init() {
   setupInfo = await window.tranzl.getSetup();
   modelLoadState = setupInfo.modelState;
   themeEl.value = setupInfo.theme ?? 'system';
+  computeEl.value = setupInfo.embeddedCompute ?? 'auto';
   chooseLocalDescEl.textContent = setupInfo.embeddedUnavailable ||
     `Downloads ${setupInfo.modelLabel.replace(' (embedded)', '')} (${setupInfo.downloadSize}) once and runs fully inside Tranzl. No other apps needed.`;
   if (setupInfo.embeddedUnavailable) {
