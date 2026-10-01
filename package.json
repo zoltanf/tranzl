@@ -7,7 +7,7 @@
     "start": "electron .",
     "pack": "node scripts/pack.cjs",
     "install-app": "npm run pack && rm -rf /Applications/Tranzl.app && cp -R dist/Tranzl-darwin-arm64/Tranzl.app /Applications/",
-    "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs tests/server-runtime.cjs tests/verified-assets.cjs tests/secure-store.cjs tests/profile.cjs",
+    "test": "node --test tests/chat-backend.cjs tests/attachments.cjs tests/chat-compaction.cjs tests/local-proxy.cjs tests/server-runtime.cjs tests/verified-assets.cjs tests/secure-store.cjs tests/profile.cjs tests/resource-policy.cjs",
     "test:electron": "electron tests/chat-ui.cjs && electron tests/attachments-electron.cjs && node --test tests/app-smoke.cjs",
     "evaluate:runtime": "electron scripts/evaluate-runtime.cjs",
     "pack:evaluation": "node scripts/package-evaluation.cjs"

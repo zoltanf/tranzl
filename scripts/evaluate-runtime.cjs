@@ -12,6 +12,8 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const assert = require('node:assert/strict');
 const appRoot = process.env.TRANZL_APP_ROOT || path.resolve(__dirname, '..');
+// --total-memory-gib=<n> evaluates the memory tier of an n GB machine (resourcePolicy.js) on this one.
+{ const gib = process.argv.find(arg => arg.startsWith('--total-memory-gib=')); if (gib) process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB = gib.split('=')[1]; }
 const appRequire = require('node:module').createRequire(path.join(appRoot, 'package.json'));
 const { createServerRuntime } = appRequire('./src/backends/serverRuntime');
 const args = Object.fromEntries(process.argv.slice(1).filter(arg => arg.startsWith('--')).map(arg => { const i = arg.indexOf('='); return i < 0 ? [arg.slice(2), true] : [arg.slice(2, i), arg.slice(i + 1)]; }));
@@ -35,7 +37,7 @@ if (args.offline) {
 app.on('window-all-closed', () => {});
 const report = { date: new Date().toISOString(), backend: args.backend, platform: process.platform, arch: process.arch,
   os: os.release(), cpu: os.cpus()[0]?.model, ramBytes: os.totalmem(), electron: process.versions.electron,
-  node: process.versions.node, contextSize: 8192, requestTimeoutSeconds: Number(args['request-timeout'] || 90), cases: [], memoryMethod: process.platform === 'win32' ? 'Peak summed working set of harness and descendants sampled every 5 s (CIM); short peaks between samples can be missed; includes Electron overhead.' : 'Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.' };
+  node: process.versions.node, contextSize: appRequire('./src/backends/resourcePolicy').resourcePolicy().contextSize, evaluatedTotalMemoryGiB: Number(process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB) || null, requestTimeoutSeconds: Number(args['request-timeout'] || 90), cases: [], memoryMethod: process.platform === 'win32' ? 'Peak summed working set of harness and descendants sampled every 5 s (CIM); short peaks between samples can be missed; includes Electron overhead.' : 'Peak summed RSS of harness and descendants sampled every 250 ms; shared pages may be counted twice; includes Electron overhead.' };
 let engine, memoryTimer, peakRssKiB = 0, lastResult = null;
 async function digest(file) {
   const hash = crypto.createHash('sha256');
@@ -160,7 +162,7 @@ app.whenReady().then(async () => {
       const messages = user('<attached-file name="synthetic.txt">\n' + ('Project ORCHID-729 launches on Friday. The owner is Ada. Budget is 420 euros.\n'.repeat(400)) + '\n</attached-file>\nWhat is the project code, owner, launch day, and budget?');
       // Several model calls; scales with --request-timeout for slower CPU targets.
       const original = JSON.stringify(messages), signal = AbortSignal.timeout(Math.max(240, 3 * report.requestTimeoutSeconds) * 1000);
-      const prepared = await prepareContext({ messages, contextSize: 8192, effort: 'fast', signal,
+      const prepared = await prepareContext({ messages, contextSize: report.contextSize, effort: 'fast', signal,
         count: (items, system) => engine.countTokens({ messages: items, systemPrompt: system || defaultSystem, reasoning: false, signal }),
         summarize: async (items, system, maxTokens) => (await ask(items, { systemPrompt: system, maxTokens, signal })).translation });
       assert.ok(prepared.compaction); assert.equal(JSON.stringify(messages), original);

@@ -238,8 +238,10 @@ ipc.handle('get-setup', () => ({
   modelReady: local.isReady(settings.localModelPath),
   modelLabel: local.MODEL_LABEL,
   downloadSize: local.DOWNLOAD_SIZE_TEXT,
-  // Why embedded inference cannot run on this system (e.g. too old a glibc), or null.
+  // Why embedded inference cannot run on this system (too old a glibc, too little memory), or null,
+  // and a note when it runs with a reduced context.
   embeddedUnavailable: local.availability().reason ?? null,
+  embeddedNote: local.availability().note ?? null,
   // Load state of the embedded model ('idle'|'loading'|'ready'|'error') so
   // the renderer shows the right status even if it missed earlier events
   modelState: local.modelState().state,
@@ -424,7 +426,7 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
     try {
       const info = await chatModelInfo(model, backend);
       abort.signal.throwIfAborted();
-      const contextSize = backend === 'local' ? (info.contextSize || 8192) : info.contextSize;
+      const contextSize = backend === 'local' ? (info.contextSize || local.availability().contextSize || 8192) : info.contextSize;
       if (contextSize) {
         const common = { modelPath: settings.localModelPath,
           signal: abort.signal, onStatus: status => send({ type: 'status', status }) };

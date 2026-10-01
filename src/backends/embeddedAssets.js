@@ -46,8 +46,11 @@ function runtimeFor(target = `${process.platform}-${process.arch}`) {
   }
   return runtime;
 }
+// Whether this system can run the embedded model: a pinned runtime for it, and enough memory.
 function availability() {
-  try { runtimeFor(); return { available: true }; } catch (error) { return { available: false, reason: error.message }; }
+  try { runtimeFor(); } catch (error) { return { available: false, reason: error.message }; }
+  const policy = require('./resourcePolicy').resourcePolicy();
+  return policy.available ? { available: true, contextSize: policy.contextSize, note: policy.note ?? null } : { available: false, reason: policy.reason };
 }
 function paths(dir, target) {
   const runtime = runtimeFor(target);

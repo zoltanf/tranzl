@@ -1,8 +1,9 @@
 const fs = require('node:fs');
 const { createServerRuntime } = require('./serverRuntime');
 const assets = require('./embeddedAssets');
+const { resourcePolicy } = require('./resourcePolicy');
 
-function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = createServerRuntime }) {
+function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = createServerRuntime, contextSize = resourcePolicy().contextSize }) {
   let runtime = null, selectedModel = null, status = { state: 'idle' }, statusCallback = null;
   function publish(value) { status = value; statusCallback?.(value); }
   function getRuntime(modelPath) {
@@ -11,12 +12,12 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
     if (!runtime) {
       const { binary, projector } = assetManager.paths(dir);
       selectedModel = modelPath;
-      runtime = makeRuntime({ binary, projectorPath: projector, modelPath, contextSize: 8192,
+      runtime = makeRuntime({ binary, projectorPath: projector, modelPath, contextSize,
         prepareAssets: async options => {
           publish({ state: 'loading' });
           await assetManager.prepare({ ...options, dir, modelPath });
         },
-        onStatus: value => publish({ ...value, contextSize: 8192 }),
+        onStatus: value => publish({ ...value, contextSize }),
       });
     }
     return runtime;
@@ -24,7 +25,7 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
   async function invoke(method, options) {
     try { return await getRuntime(options.modelPath)[method](options); }
     catch (error) {
-      if (options.signal?.aborted) publish({ state: runtime?.state().ready ? 'ready' : 'idle', contextSize: 8192 });
+      if (options.signal?.aborted) publish({ state: runtime?.state().ready ? 'ready' : 'idle', contextSize });
       else publish({ state: 'error', error: error.message });
       throw error;
     }

@@ -79,9 +79,9 @@ cask "tranzl" do
 
   # Tranzl is ad-hoc signed (not notarized); without this Gatekeeper refuses
   # to launch it. Disclosed in the caveats below.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Tranzl.app"]
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "{{appdir}}/Tranzl.app"]
   end
 
   zap trash: [

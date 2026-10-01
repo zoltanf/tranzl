@@ -32,9 +32,10 @@ jobs:
         include:
           # Mac inference is validated locally with Metal; hosted Macs have no GPU access.
           - { name: macOS 15 ARM64, runner: macos-15, inference: false }
-          - { name: Windows x64, runner: windows-2025, inference: true }
+          # reduced: also evaluate the 12 GB memory tier (4,096-token context) on this runner.
+          - { name: Windows x64, runner: windows-2025, inference: true, reduced: true }
           - { name: Ubuntu 22.04 x64, runner: ubuntu-22.04, inference: true }
-          - { name: Ubuntu 24.04 x64, runner: ubuntu-24.04, inference: true }
+          - { name: Ubuntu 24.04 x64, runner: ubuntu-24.04, inference: true, reduced: true }
           # The upstream ARM64 runtime needs glibc 2.38; 22.04 has 2.35, so embedded
           # inference must be reported unavailable there (LM Studio/Ollama still work).
           - { name: Ubuntu 22.04 ARM64, runner: ubuntu-22.04-arm, inference: false, embedded: unsupported }
@@ -168,6 +169,17 @@ jobs:
           $XVFB "$exe" --backend=embedded --model="$RUNNER_TEMP/models/hf_ggml-org_gemma-4-E4B-it.Q4_0.gguf" \
             --download-runtime --media --extended --audio="$GITHUB_WORKSPACE/tests/fixtures/speech.wav" \
             --request-timeout=900 --output="$RUNNER_TEMP/evidence/report.json"
+
+      - name: Real-model CPU checks at the 12 GB memory tier
+        timeout-minutes: 150
+        if: env.INFERENCE == 'true' && matrix.reduced
+        run: |
+          dir="$RUNNER_TEMP/eval/TranzlRuntimeEvaluation-$(node -p 'process.platform + "-" + process.arch')"
+          if [ "$RUNNER_OS" = Windows ]; then exe="$dir/TranzlRuntimeEvaluation.exe"; else exe="$dir/TranzlRuntimeEvaluation"; fi
+          cd "$RUNNER_TEMP"
+          $XVFB "$exe" --backend=embedded --model="$RUNNER_TEMP/models/hf_ggml-org_gemma-4-E4B-it.Q4_0.gguf" \
+            --download-runtime --media --extended --audio="$GITHUB_WORKSPACE/tests/fixtures/speech.wav" \
+            --request-timeout=900 --total-memory-gib=12 --output="$RUNNER_TEMP/evidence/report-12gb-tier.json"
 
       - name: Upload evidence
         if: always()

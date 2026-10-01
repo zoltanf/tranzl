@@ -56,6 +56,7 @@ app.whenReady().then(async () => {
   }
   try {
     await win.loadFile(path.resolve(appRoot, 'src/renderer/index.html'));
+    const replace = (name, handler) => { ipcMain.removeHandler(name); ipcMain.handle(name, handler); };
     await waitFor(`!document.getElementById('chat-input').disabled`);
     assert.equal(await run(`document.querySelector('#tab-chat #chat-new') !== null && document.querySelector('#tab-chat #chat-clear') !== null`), true);
     await waitFor(`document.getElementById('chat-attach').title.includes('Not supported on this computer: Apple Lossless (ALAC) M4A')`);
@@ -63,6 +64,12 @@ app.whenReady().then(async () => {
     assert.equal(await run(`document.getElementById('choose-local').disabled`), true);
     assert.match(await run(`document.getElementById('choose-local-desc').textContent`), /needs glibc 2\.38 or newer/);
     assert.match(await run(`document.getElementById('choose-local-title').textContent`), /not available on this system/);
+    // A reduced-memory system is told about the smaller context before any download.
+    replace('get-setup', () => ({ backend: 'lmstudio', theme: 'dark', modelReady: false, modelLabel: 'Test model', embeddedUnavailable: null, embeddedNote: 'This computer has 12 GB of memory, so the embedded model uses a smaller context (4,096 tokens instead of 8,192).' }));
+    await run(`location.reload()`); await waitFor(`!document.getElementById('chat-input').disabled`);
+    assert.equal(await run(`document.getElementById('choose-local').disabled`), false);
+    assert.match(await run(`document.getElementById('choose-local-desc').textContent`), /Downloads .* once .* smaller context \(4,096 tokens/);
+    replace('get-setup', () => ({ backend: 'lmstudio', theme: 'dark', modelReady: false, modelLabel: 'Test model', embeddedUnavailable: 'Embedded inference on this system needs glibc 2.38 or newer (for example Ubuntu 24.04); this system has 2.35. Use LM Studio or Ollama instead.' }));
     assert.match(await run(`document.getElementById('chat-attach').title`), /up to 8 files, 20 MB each/);
     assert.equal(await run(`document.getElementById('source').title`), `${process.platform === 'darwin' ? '⌘↩' : 'Ctrl+Enter'} runs immediately`);
     await run(`document.querySelector('[data-tab="tab-chat"]').click(); document.getElementById('chat-attach').click()`);
@@ -266,7 +273,6 @@ app.whenReady().then(async () => {
     // memory, are visibly temporary, and never try to save over the preserved files.
     let saves = [];
     const unreadable = 'Saved chats could not be read, so changes are kept only until you close the app.';
-    const replace = (name, handler) => { ipcMain.removeHandler(name); ipcMain.handle(name, handler); };
     replace('chat-load', () => ({ sessions: [], persistent: false, error: unreadable }));
     replace('history-load', () => ({ store: null, persistent: false, error: 'Saved input history could not be read.' }));
     replace('chat-save', () => { saves.push('chat'); return { ok: false }; });

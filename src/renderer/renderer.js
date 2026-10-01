@@ -923,6 +923,8 @@ async function init() {
   if (setupInfo.embeddedUnavailable) {
     document.getElementById('choose-local-title').textContent = 'Embedded model (not available on this system)';
     chooseLocalBtn.disabled = true;
+  } else if (setupInfo.embeddedNote) {
+    chooseLocalDescEl.textContent += ` ${setupInfo.embeddedNote}`;
   }
 
   if (!setupInfo.backend || (setupInfo.backend === 'local' && setupInfo.embeddedUnavailable)) {
