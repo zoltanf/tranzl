@@ -20,6 +20,19 @@ On first launch, choose a backend. "Embedded model" downloads Gemma 4 E4B (~4.6 
 
 Requirements: Apple Silicon Mac, ~8 GB free RAM for the embedded model.
 
+### Windows and Linux (release candidates)
+
+Builds for other platforms are attached to GitHub pre-releases for testing. They are **not code-signed**: Windows shows a SmartScreen warning ("More info" → "Run anyway"), and Linux desktops may ask to trust the application once.
+
+| Platform | Artifact | Install |
+| --- | --- | --- |
+| Windows 11 x64 | `Tranzl-<version>-win-x64.exe` (per-user installer) or `…-win-x64.zip` | Run the installer, or unzip and start `Tranzl.exe` |
+| Ubuntu 24.04 / 26.04 x64 and ARM64 | `Tranzl-<version>-linux-<arch>.deb` | `sudo apt install ./Tranzl-<version>-linux-<arch>.deb` (installs the AppArmor profile Chromium's sandbox needs on 24.04+) |
+| Other Linux x64 / ARM64 | `Tranzl-<version>-linux-<arch>.AppImage` | `chmod +x` and run (needs FUSE 2; on Ubuntu 24.04+ prefer the .deb, or the sandbox needs an AppArmor profile) |
+| Arch Linux / Omarchy x64 | `Tranzl-<version>-linux-x64.pkg.tar.zst` | `sudo pacman -U Tranzl-<version>-linux-x64.pkg.tar.zst` |
+
+Embedded inference on these targets runs on the CPU (GPU builds are not shipped yet): it needs a 12 GB-class machine (reduced 4,096-token context) or 16 GB for the full context, and on Linux ARM64 glibc 2.38+ (Ubuntu 24.04 or newer; Ubuntu 22.04 ARM64 can use LM Studio or Ollama). Verify downloads against `SHA256SUMS.txt` on the release.
+
 ## Run from source
 
 ```bash
@@ -39,7 +52,15 @@ Package and install to /Applications (macOS only):
 npm run install-app
 ```
 
-Release a new version (maintainers — builds, zips, publishes a GitHub release, and updates the Homebrew tap):
+Build installers for the current OS from the packaged app (Windows: NSIS installer and ZIP; Linux: .deb, Arch package and AppImage; builds only, never publishes):
+
+```bash
+npm run pack && npm run installers
+```
+
+Pushing a tag `v*` runs `.github/workflows/release.yml`, which builds every target, smoke-tests each packaged app, and attaches the artifacts plus `SHA256SUMS.txt` to a **draft** pre-release for manual review and publishing.
+
+Release a new version on macOS (maintainers — builds, zips, publishes a GitHub release, and updates the Homebrew tap):
 
 ```bash
 npm version patch --no-git-tag-version && git commit -am "Bump version"

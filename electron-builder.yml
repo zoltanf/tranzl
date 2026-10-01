@@ -1,0 +1,60 @@
+# Installer configuration. Used only with --prepackaged on the validated Electron Packager
+# output (scripts/installers.cjs); electron-builder never repackages the app itself.
+appId: com.tranzl.app
+productName: Tranzl
+copyright: GPL-3.0-or-later
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+directories:
+  output: dist/installers
+linux:
+  icon: build/icon-1024.png
+  category: Office
+  synopsis: Private, on-device translation, text editing and chat
+  description: Private, on-device translation, text editing and chat with an embedded local model.
+  maintainer: Zoltan Fekete
+  executableName: tranzl
+  desktop:
+    entry:
+      Name: Tranzl
+      Comment: Private, on-device translation, text editing and chat
+      Categories: Office;Utility;
+      StartupWMClass: Tranzl
+  extraResources:
+    - from: build/linux/apparmor-tranzl
+      to: apparmor-tranzl
+deb:
+  afterInstall: build/linux/after-install.sh
+  afterRemove: build/linux/after-remove.sh
+  depends:
+    - libgtk-3-0 | libgtk-3-0t64
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0 | libatspi2.0-0t64
+    - libuuid1
+    - libsecret-1-0
+    - libasound2 | libasound2t64
+pacman:
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libxss
+    - libxtst
+    - xdg-utils
+    - at-spi2-core
+    - libsecret
+    - alsa-lib
+appImage:
+  license: LICENSE
+win:
+  icon: build/icon.png
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  license: LICENSE

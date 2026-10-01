@@ -1,0 +1,10 @@
+# AppArmor profile for Tranzl (Ubuntu 24.04 and newer restrict unprivileged user namespaces,
+# which Chromium's renderer sandbox needs). Installed by the .deb to /etc/apparmor.d/tranzl.
+abi <abi/4.0>,
+include <tunables/global>
+
+profile tranzl /opt/Tranzl/tranzl flags=(unconfined) {
+  userns,
+  # Site-specific additions and overrides. See local/README for details.
+  include if exists <local/tranzl>
+}

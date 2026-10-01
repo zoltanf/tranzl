@@ -1,0 +1,122 @@
+name: Release artifacts
+
+# Builds installable artifacts for every target from a tag and attaches them to a DRAFT
+# pre-release with checksums. Publishing the release (and the Homebrew tap update via
+# scripts/release.sh) stays a manual step. Nothing here is code-signed except the ad-hoc
+# macOS signature; the release notes say so.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS ARM64, runner: macos-15 }
+          - { name: Windows x64, runner: windows-2025 }
+          - { name: Linux x64, runner: ubuntu-24.04 }
+          - { name: Linux ARM64, runner: ubuntu-24.04-arm }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Linux desktop libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          pkgs=(xvfb libnss3 libgbm1 libxss1 libxkbcommon0 libdrm2 rpm libfuse2t64)
+          for pair in libgtk-3-0t64:libgtk-3-0 libasound2t64:libasound2; do
+            if apt-cache show "${pair%%:*}" > /dev/null 2>&1; then pkgs+=("${pair%%:*}"); else pkgs+=("${pair##*:}"); fi
+          done
+          sudo apt-get install -y --no-install-recommends "${pkgs[@]}"
+          printf '#!/bin/sh\nexec xvfb-run -a -s "-screen 0 1920x1080x24" "$@"\n' > "$RUNNER_TEMP/with-display"
+          chmod +x "$RUNNER_TEMP/with-display" && echo "XVFB=$RUNNER_TEMP/with-display" >> "$GITHUB_ENV"
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0; fi
+
+      - run: npm ci
+      - name: Download Electron
+        run: node -e "console.log(require('electron'))"
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package natively
+        run: npm run pack
+
+      - name: Smoke test the packaged app
+        run: |
+          exe=$(node -p "const p = require('path'), dir = p.resolve('dist', 'Tranzl-' + process.platform + '-' + process.arch); ({ darwin: p.join(dir, 'Tranzl.app/Contents/MacOS/Tranzl'), win32: p.join(dir, 'Tranzl.exe'), linux: p.join(dir, 'Tranzl') })[process.platform]")
+          TRANZL_EXECUTABLE="$exe" $XVFB node --test tests/app-smoke.cjs
+
+      - name: Build installers (Windows, Linux)
+        if: runner.os != 'macOS'
+        run: node scripts/installers.cjs
+
+      - name: Build the macOS ZIP
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist/installers
+          version=$(node -p "require('./package.json').version")
+          ditto -c -k --keepParent dist/Tranzl-darwin-arm64/Tranzl.app "dist/installers/Tranzl-$version-arm64.zip"
+
+      - name: Checksums and inventory
+        run: |
+          cd dist/installers
+          rm -f ./*.blockmap ./*.yml ./*.yaml
+          ls -la
+          node -e "
+            const fs = require('fs'), crypto = require('crypto');
+            for (const f of fs.readdirSync('.').filter(n => /\.(zip|exe|deb|AppImage|pkg\.tar\.zst)$/.test(n)))
+              fs.appendFileSync('SHA256SUMS-' + process.platform + '-' + process.arch + '.txt', crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex') + '  ' + f + '\n');
+          "
+          cat SHA256SUMS-*.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-${{ matrix.runner }}
+          path: |
+            dist/installers/*.zip
+            dist/installers/*.exe
+            dist/installers/*.deb
+            dist/installers/*.AppImage
+            dist/installers/*.pkg.tar.zst
+            dist/installers/SHA256SUMS-*.txt
+          if-no-files-found: error
+
+  draft-release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create the draft pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la artifacts
+          cat artifacts/SHA256SUMS-*.txt > artifacts/SHA256SUMS.txt
+          tag="${GITHUB_REF_NAME}"
+          notes="Tranzl ${tag#v} — release candidate for testing.
+
+          Builds: macOS Apple Silicon (ad-hoc signed ZIP), Windows x64 (installer and ZIP, **unsigned**), Linux x64 and ARM64 (.deb for Ubuntu 24.04/26.04, AppImage), Arch/Omarchy x64 (.pkg.tar.zst). Windows and Linux builds are not code-signed; expect SmartScreen/Gatekeeper-style warnings. Embedded inference on Linux ARM64 needs glibc 2.38+ (Ubuntu 24.04+); CPU-class machines need 12 GB (reduced context) or 16 GB. See README for details and SHA256SUMS.txt for checksums."
+          gh release create "$tag" artifacts/*.zip artifacts/*.exe artifacts/*.deb artifacts/*.AppImage artifacts/*.pkg.tar.zst artifacts/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" --draft --prerelease --title "Tranzl ${tag#v}" --notes "$notes"
