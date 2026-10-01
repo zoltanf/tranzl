@@ -7,7 +7,7 @@ const GIB = 2 ** 30;
 const FULL_CONTEXT = 8192, REDUCED_CONTEXT = 4096;
 const FULL_MIN_GIB = 15, REDUCED_MIN_GIB = 11;
 // Evaluation-only: lets the harness exercise another tier on any machine (documented in README).
-const override = () => Number(process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB) * GIB || null;
+const override = () => { const gib = Number(process.env.TRANZL_EVALUATION_TOTAL_MEMORY_GIB); return Number.isFinite(gib) && gib > 0 ? gib * GIB : null; };
 
 function resourcePolicy({ totalMemoryBytes = override() ?? os.totalmem(), platform = override() ? 'cpu-class' : process.platform } = {}) {
   const gib = totalMemoryBytes / GIB, shown = `${Math.round(gib)} GB`;

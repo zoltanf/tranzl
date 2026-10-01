@@ -20,6 +20,8 @@ else http.createServer(async (req, res) => {
   }
   let raw = ''; for await (const chunk of req) raw += chunk;
   const body = JSON.parse(raw);
+  // reset-once: the first token count hits a connection the server drops without answering.
+  if (req.url.endsWith('/input_tokens') && process.argv[2] === 'reset-once' && !global.resetDone) { global.resetDone = true; req.socket.destroy(); return; }
   if (req.url.endsWith('/input_tokens')) { res.end(JSON.stringify({ input_tokens: 12 })); return; }
   const content = body.messages.at(-1).content;
   if (content === 'crash') { process.exit(2); }

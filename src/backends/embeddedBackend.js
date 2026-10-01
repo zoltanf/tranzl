@@ -7,8 +7,14 @@ const { resourcePolicy } = require('./resourcePolicy');
 function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = createServerRuntime, contextSize = resourcePolicy().contextSize, getCompute = () => 'auto' }) {
   let runtime = null, selectedModel = null, status = { state: 'idle' }, statusCallback = null;
   function publish(value) { status = value; statusCallback?.(value); }
+  // Status always reflects the live runtime (effective context, compute, fallback), not the policy defaults.
+  const snapshot = (state, extra = {}) => {
+    const live = runtime?.state();
+    return { state, contextSize: live?.contextSize ?? contextSize, compute: live?.compute, fallback: live?.fallback ?? null, contextReduced: live?.contextReduced ?? null, ...extra };
+  };
   function getRuntime(modelPath) {
     if (!modelPath) throw new Error('Download the embedded model in Settings first.');
+    if (contextSize == null) throw new Error('The embedded model is not available on this computer (see Settings).');
     if (runtime && selectedModel !== modelPath) throw new Error('The embedded model changed. Restart Tranzl to load the new model.');
     if (!runtime) {
       const { binary, projector } = assetManager.paths(dir);
@@ -27,8 +33,8 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
   async function invoke(method, options) {
     try { return await getRuntime(options.modelPath)[method](options); }
     catch (error) {
-      if (options.signal?.aborted) publish({ state: runtime?.state().ready ? 'ready' : 'idle', contextSize });
-      else publish({ state: 'error', error: error.message });
+      if (options.signal?.aborted) publish(snapshot(runtime?.state().ready ? 'ready' : 'idle'));
+      else publish(snapshot('error', { error: error.message }));
       throw error;
     }
   }
@@ -45,7 +51,12 @@ function createEmbeddedBackend({ dir, assetManager = assets, makeRuntime = creat
     chat: options => invoke('chat', options),
     translate: options => invoke('chat', { ...options, messages: options.messages || [...(options.history || []), { role: 'user', content: options.text }] }),
     countTokens: options => invoke('countTokens', options),
-    async release() { await runtime?.stop(); runtime = null; selectedModel = null; publish({ state: 'idle' }); },
+    // Releases the runtime that exists now; a runtime created meanwhile (e.g. by a later preload) is kept.
+    async release() {
+      const releasing = runtime;
+      await releasing?.stop();
+      if (runtime === releasing) { runtime = null; selectedModel = null; publish({ state: 'idle' }); }
+    },
   };
 }
 module.exports = { createEmbeddedBackend };

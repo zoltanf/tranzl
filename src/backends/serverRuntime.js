@@ -233,6 +233,17 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     if (!response.ok) { await response.body?.cancel(); throw new Error(`Inference request failed (HTTP ${response.status})`); }
     return response;
   }
+  // A kept-alive loopback connection can be closed by the server just as it is reused, which
+  // surfaces as a bare "fetch failed". Requests that produce no output are safe to send again once.
+  async function onceMore(request, signal) {
+    try { return await request(); }
+    catch (error) {
+      const transient = error instanceof TypeError && /fetch failed/.test(error.message);
+      if (!transient || signal?.aborted || !child) throw error;
+      await delay(50, undefined, { signal });
+      return request();
+    }
+  }
   async function waitForIdle() {
     // Aborting fetch closes the generation connection. Keep the loaded model
     // only after the server confirms its single slot is idle; otherwise restart.
@@ -276,7 +287,7 @@ function createServerRuntime({ binary, modelPath, projectorPath, contextSize = 8
     countTokens: options => enqueue(options.signal, async active => {
       await ensure(active, mediaRequired(options), options.onStatus);
       const signal = AbortSignal.any([active, processAbort.signal]);
-      const response = await post('/v1/chat/completions/input_tokens', payload(options), signal);
+      const response = await onceMore(() => post('/v1/chat/completions/input_tokens', payload(options), signal), signal);
       const { input_tokens } = await response.json();
       signal.throwIfAborted();
       if (!Number.isSafeInteger(input_tokens) || input_tokens < 0) throw new Error('Runtime returned an invalid token count');

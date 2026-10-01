@@ -191,3 +191,10 @@ test('at the floor already, a context failure is a clear error with no retry', a
   await assert.rejects(runtime.chat(options('hello')), /not enough memory to create the model context/);
   assert.equal(children.length, 1);
 });
+
+test('a dropped keep-alive connection on a token count is retried once, not surfaced', async t => {
+  const { runtime, children } = fixture(t, 'reset-once');
+  await runtime.chat(options('hello'));
+  assert.equal(await runtime.countTokens(options('hello')), 12);
+  assert.equal(children.length, 1, 'same server; no restart');
+});

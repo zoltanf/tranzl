@@ -142,7 +142,7 @@ Not shown by this stage: GPU acceleration on Windows/Linux, behaviour on 8 GB ma
 
 ## Stage E memory policy evaluation
 
-The 12 GB-tier policy (4,096-token context) was run through the full 17-case harness on the Mac with `--total-memory-gib=12`: 17/17, the server reported a 4,096 context, the near-limit case compacted 10,455 tokens to fit a 1,843-token target, and peak summed RSS was 5.7 GiB (5.3 text-only) against 5.9 GiB at 8,192. Evidence: `runtime-evidence/2026-10-01/mac-12gb-tier.json`. CI repeats the tier on Windows x64 and Ubuntu 24.04 x64 (`report-12gb-tier.json` in those runners' evidence) to measure the CPU-class peak at 4,096; those runners have 16 GB, so this measures the smaller footprint, not behaviour under real memory pressure on a 12 GB machine.
+The 12 GB-tier policy (4,096-token context) was run through the full 17-case harness on the Mac with `--total-memory-gib=12`: 17/17, the server reported a 4,096 context, the near-limit case compacted 10,455 tokens to fit a 1,843-token target, and peak summed RSS was 5.7 GiB (5.3 text-only) against 5.9 GiB at 8,192. Evidence: `runtime-evidence/2026-10-01/mac-12gb-tier.json`. CI repeated the tier on 16 GB runners (workflow run 36822864525 at `ddc28ed`): Ubuntu 24.04 x64 17/17 at 4,096 with peak summed RSS 7.9 GiB against 8.1 GiB at 8,192 in the same job; Windows x64 17/17, where the 5-second working-set samples (7.8 vs 6.3 GiB) are too coarse to show the difference. Evidence: `runtime-evidence/2026-10-01/ci-*-12gb-tier.json`. This measures the smaller footprint on a 16 GB machine, not behaviour under real memory pressure on a 12 GB one.
 
 ## Stage E recovery paths
 

@@ -9,15 +9,16 @@ const mainPath = path.resolve(__dirname, '../src/main.js');
 const trustedFrame = { url: require('node:url').pathToFileURL(path.resolve(__dirname, '../src/renderer/index.html')).href, parent: null };
 function harness(backend, fetch) {
   const handlers = new Map(), events = [], calls = [];
+  const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'tranzl-main-test-'));
   const electron = { ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
-    app: { setPath() {}, getPath: () => '/tmp', whenReady: () => ({ then() {} }), on() {} } };
-  const local = { modelState: () => ({ contextSize: 8192 }), countTokens: async () => 100, MODEL_LABEL: 'test model', chat: async options => { calls.push(options); options.onChunk('Hello'); return { translation: 'Hello' }; } };
+    app: { setPath() {}, getPath: () => userData, whenReady: () => ({ then() {} }), on() {} } };
+  const local = { modelState: () => ({ contextSize: 8192 }), availability: () => ({ available: true, contextSize: 8192 }), preload: async () => {}, countTokens: async () => 100, MODEL_LABEL: 'test model', chat: async options => { calls.push(options); options.onChunk('Hello'); return { translation: 'Hello' }; } };
   const realRequire = createRequire(mainPath);
   const context = vm.createContext({ require: name => name === 'electron' ? electron : name === './backends/local' ? local : realRequire(name), AbortController, AbortSignal, TextDecoder, fetch, Buffer, console, __dirname: path.dirname(mainPath) });
   vm.runInContext(fs.readFileSync(mainPath, 'utf8') + `\nsettings = { backend: ${JSON.stringify(backend)} };`, context);
   // IPC is accepted only from the app's own top-level page (src/ipc.js).
   const event = { senderFrame: trustedFrame, sender: { isDestroyed: () => false, send: (channel, data) => events.push({ channel, ...data }) } };
-  return { handlers, event, events, calls, local, setBackend: backend => vm.runInContext(`settings.backend = ${JSON.stringify(backend)}`, context) };
+  return { handlers, event, events, calls, local, userData, setBackend: backend => vm.runInContext(`settings.backend = ${JSON.stringify(backend)}`, context) };
 }
 const messages = [{ role: 'user', content: 'My name is Sam' }, { role: 'assistant', content: 'Hello Sam' }, { role: 'user', content: 'What is my name?' }];
 test('embedded chat restores turns and keeps translation requests independent', async () => {
@@ -171,10 +172,9 @@ test('the model download is refused when the runtime cannot start on this system
 test('CPU-only compute is saved, applied by restarting the runtime, and validated', async () => {
   const h = harness('local'), local = h.local, calls = [];
   local.isReady = () => true; local.setCompute = mode => calls.push(['set', mode]); local.release = async () => { calls.push(['release']); }; local.preload = () => calls.push(['preload']);
-  const settings = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'tranzl-compute-'));
-  h.setUserData?.(settings);
   assert.equal((await h.handlers.get('set-compute')(h.event, 'gpu')).ok, false);
   assert.deepEqual(calls, []);
   assert.equal((await h.handlers.get('set-compute')(h.event, 'cpu')).ok, true);
   assert.deepEqual(calls, [['set', 'cpu'], ['release'], ['preload']], 'release before preload so the new mode applies');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(h.userData, 'settings.json'), 'utf8')).embeddedCompute, 'cpu', 'persisted in the isolated profile');
 });

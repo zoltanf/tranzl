@@ -12,7 +12,12 @@ const os = require('node:os');
 const path = require('node:path');
 const appRoot = process.env.TRANZL_APP_ROOT || path.resolve(__dirname, '..');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const within = (ms, what, promise) => Promise.race([promise, sleep(ms).then(() => { throw new Error(`Timed out after ${ms / 1000} s: ${what}`); })]);
+// Deadline whose timer is cleared when the promise settles, so it never keeps the process alive.
+async function within(ms, what, promise) {
+  let timer;
+  try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`Timed out after ${ms / 1000} s: ${what}`)), ms); })]); }
+  finally { clearTimeout(timer); }
+}
 // Keep tests off real OS keychains: macOS uses Chromium's mock keychain (no item, no access
 // prompt); Linux uses the unprotected basic store, which Tranzl must refuse to persist with.
 const KEYCHAIN_FLAGS = { darwin: ['--use-mock-keychain'], linux: ['--password-store=basic'] }[process.platform] || [];

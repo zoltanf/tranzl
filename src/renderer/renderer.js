@@ -743,8 +743,11 @@ if (localStorage.getItem('tranzl.thinkingCollapsed') === '1') {
 // Theme is stored and applied in the main process (nativeTheme), which
 // drives the prefers-color-scheme media query this page's CSS keys off
 computeEl.addEventListener('change', async () => {
-  const result = await window.tranzl.setCompute(computeEl.value);
-  if (!result.ok) setStatus(result.error, 'error');
+  computeEl.disabled = true; // one transition at a time
+  try {
+    const result = await window.tranzl.setCompute(computeEl.value);
+    if (!result.ok) setStatus(result.error, 'error');
+  } finally { computeEl.disabled = false; }
 });
 
 themeEl.addEventListener('change', () => {

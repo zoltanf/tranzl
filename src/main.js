@@ -253,16 +253,23 @@ ipc.handle('get-setup', () => ({
 // the renderer (which the CSS keys off) and keeps the window chrome in sync
 // Embedded compute selection: automatic (GPU where available) or CPU only. Applying it
 // restarts the embedded runtime; in-flight work is aborted first like on quit.
-ipc.handle('set-compute', async (_event, mode) => {
+let computeTransition = Promise.resolve();
+ipc.handle('set-compute', (_event, mode) => {
   if (!['auto', 'cpu'].includes(mode)) return { ok: false, error: `unknown compute mode: ${mode}` };
-  saveSettings({ embeddedCompute: mode });
-  local.setCompute(mode);
-  if (settings.backend === 'local' && local.isReady(settings.localModelPath)) {
-    chatRequest.abort?.abort(); translationRequest.abort?.abort();
-    await local.release();
-    local.preload(settings.localModelPath, forwardModelStatus);
-  }
-  return { ok: true };
+  // Transitions run one at a time, so a second change cannot orphan the runtime the first one started.
+  computeTransition = computeTransition.then(async () => {
+    saveSettings({ embeddedCompute: mode });
+    local.setCompute(mode);
+    if (settings.backend === 'local' && local.isReady(settings.localModelPath)) {
+      chatRequest.abort?.abort(); translationRequest.abort?.abort();
+      await local.release();
+      await local.preload(settings.localModelPath, forwardModelStatus);
+      const state = local.modelState();
+      if (state.state === 'error') return { ok: false, error: state.error || 'The embedded model failed to load with the new setting.' };
+    }
+    return { ok: true };
+  });
+  return computeTransition;
 });
 
 ipc.handle('set-theme', (_event, theme) => {
@@ -441,6 +448,12 @@ async function runInference(event, { text, targetLanguage, requestId, model, eff
   let preparedContext, maxTokens;
   if (chat) {
     try {
+      if (backend === 'local') {
+        const { reason } = local.availability();
+        if (reason) throw new Error(reason);
+        // Wait for the runtime to be ready first: recovery may have reduced the effective context.
+        await local.preload(settings.localModelPath, forwardModelStatus);
+      }
       const info = await chatModelInfo(model, backend);
       abort.signal.throwIfAborted();
       const contextSize = backend === 'local' ? (info.contextSize || local.availability().contextSize || 8192) : info.contextSize;
@@ -820,7 +833,7 @@ app.whenReady().then(() => {
   // Start loading the embedded model immediately so the first translation
   // doesn't have to wait for it; runs in a utilityProcess, so the UI stays
   // responsive and the renderer shows progress via backend-status events
-  if (settings.backend === 'local' && local.isReady(settings.localModelPath)) {
+  if (settings.backend === 'local' && local.isReady(settings.localModelPath) && local.availability().available) {
     local.preload(settings.localModelPath, forwardModelStatus);
   }
 
