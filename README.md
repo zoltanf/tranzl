@@ -29,7 +29,7 @@ Builds for other platforms are attached to GitHub pre-releases for testing. They
 | Windows 11 x64 | `Tranzl-<version>-win-x64.exe` (per-user installer) or `…-win-x64.zip` | Run the installer, or unzip and start `Tranzl.exe` |
 | Ubuntu 24.04 / 26.04 x64 and ARM64 | `Tranzl-<version>-linux-<arch>.deb` | `sudo apt install ./Tranzl-<version>-linux-<arch>.deb` (installs the AppArmor profile Chromium's sandbox needs on 24.04+) |
 | Other Linux x64 / ARM64 | `Tranzl-<version>-linux-<arch>.AppImage` | `chmod +x` and run (needs FUSE 2; on Ubuntu 24.04+ prefer the .deb, or the sandbox needs an AppArmor profile) |
-| Arch Linux / Omarchy x64 | `Tranzl-<version>-linux-x64.pkg.tar.zst` | `sudo pacman -U Tranzl-<version>-linux-x64.pkg.tar.zst` |
+| Arch Linux / Omarchy x64 (ARM64 too) | `Tranzl-<version>-linux-<arch>.pkg.tar.*` | `sudo pacman -U Tranzl-<version>-linux-x86_64.pkg.tar.*` |
 
 Embedded inference on these targets runs on the CPU (GPU builds are not shipped yet): it needs a 12 GB-class machine (reduced 4,096-token context) or 16 GB for the full context, and on Linux ARM64 glibc 2.38+ (Ubuntu 24.04 or newer; Ubuntu 22.04 ARM64 can use LM Studio or Ollama). Verify downloads against `SHA256SUMS.txt` on the release.
 

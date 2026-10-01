@@ -16,4 +16,10 @@ execFileSync(path.join(root, 'node_modules', '.bin', process.platform === 'win32
   ['--prepackaged', prepackaged, ...targets, `--${arch}`, '--publish', 'never', '--config', path.join(root, 'electron-builder.yml')],
   { stdio: 'inherit', cwd: root, env, shell: process.platform === 'win32' });
 const out = path.join(root, 'dist', 'installers');
-console.log(fs.readdirSync(out).filter(name => /\.(deb|pkg\.tar\.zst|AppImage|exe|zip)$/.test(name)).map(name => `${name} (${Math.round(fs.statSync(path.join(out, name)).size / 1048576)} MB)`).join('\n'));
+// electron-builder names Arch packages ".pacman"; give them the extension pacman users expect, by actual compression.
+for (const name of fs.readdirSync(out).filter(n => n.endsWith('.pacman'))) {
+  const head = Buffer.alloc(6); const fd = fs.openSync(path.join(out, name), 'r'); fs.readSync(fd, head, 0, 6, 0); fs.closeSync(fd);
+  const ext = head.readUInt32LE(0) === 0xFD2FB528 ? 'pkg.tar.zst' : head.toString('hex').startsWith('fd377a585a00') ? 'pkg.tar.xz' : head[0] === 0x1f && head[1] === 0x8b ? 'pkg.tar.gz' : null;
+  if (ext) fs.renameSync(path.join(out, name), path.join(out, name.replace(/\.pacman$/, `.${ext}`)));
+}
+console.log(fs.readdirSync(out).filter(name => /\.(deb|pkg\.tar\.(zst|xz|gz)|AppImage|exe|zip)$/.test(name)).map(name => `${name} (${Math.round(fs.statSync(path.join(out, name)).size / 1048576)} MB)`).join('\n'));
