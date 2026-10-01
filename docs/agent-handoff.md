@@ -125,7 +125,7 @@ Stage C commits: `1b26314` C1 manifest, `8862232` C2 Node packaging, `1f24bb8` C
 
 **Not proven by Stage D:** GPU acceleration on Windows/Linux (hosted runners have none); clean consumer machines (runners carry developer tooling); 8 GB systems (runners have 16 GB); Linux desktop keyrings (CI forces the basic store and checks refusal only); installers, upgrades, desktop integration (Stage F).
 
-### E: recovery and acceleration (in progress)
+### E: recovery and acceleration (done except hardware-bound validation)
 
 **E1 (done): CPU memory policy (user decision 2026-10-01, option 2).** `src/backends/resourcePolicy.js`: on non-macOS, total memory below the 12 GB class (< 11 GiB reported) makes the embedded model unavailable with a reason; the 12 GB class (11–15 GiB) runs a 4,096-token context and the setup copy says so before any download; 15 GiB and up (the "16 GB" class, which reports ~15.6) runs 8,192. macOS is unchanged. `availability()` combines the runtime gate and this policy; the backend takes its context size from it, as does compaction. `TRANZL_EVALUATION_TOTAL_MEMORY_GIB` / harness `--total-memory-gib` evaluate another tier (CPU-class rules on any platform). Evidence: Mac at the 12 GB tier, 17/17, context 4096 confirmed by the server, compaction 10,455 → 93 tokens, peak 5.7 GiB (`runtime-evidence/2026-10-01/mac-12gb-tier.json`); CI runs the tier on Windows x64 and Ubuntu 24.04 x64 (`report-12gb-tier.json`). Not covered: a real 12 GB machine (CI simulates the tier on 16 GB runners, so the peak at 4,096 is measured but not the behaviour under actual memory pressure).
 
@@ -147,7 +147,11 @@ The resource policy was a product decision for the user: CPU-only peak memory me
 
 Expose and test CPU selection/recovery. The server adapter has an internal `gpu: 'cpu'` option but the production facade uses automatic selection and has no validated automatic CPU fallback. Implement a bounded fresh-process retry for classified startup failures; never replay a partially streamed answer. Add actionable errors, effective-context/resource reporting and memory recovery. Validate Metal/CUDA/Vulkan only on actual claimed hardware; CPU CI cannot certify GPU operation.
 
-### F: installers, CI and release (pending E)
+### F: installers, CI and release (next; needs decisions)
+
+Decisions to take with the user before starting: installer tooling (Electron Packager plus per-OS steps, or Electron Builder for NSIS/AppImage/deb); whether unsigned Windows/Linux builds are acceptable for a first release (signing needs certificates/accounts); Linux AppArmor profile for Chromium's user-namespace sandbox on Ubuntu 24.04 (a `.deb` can ship one; AppImage cannot); release channel and support matrix wording (Ubuntu 22.04 ARM64 = external backends only; CPU-class memory tiers). The uncommitted `scripts/release.sh` change in the working tree (Homebrew `postflight_steps`) is the user's and belongs with this stage.
+
+Deferred from Stage E with reasons: a cancel button for background model loading (switching backend already stops using the runtime, and request cancellation plus the startup timeout exist); real 12 GB machine behaviour and CUDA/Vulkan evidence need hardware the owner provides; a bounded-memory audio decoder (defensive; the decoder runs in a disposable sandboxed window with a header precheck).
 
 Native per-target CI with locked installs and artifact inventories; Mac app/ZIP, Windows installer/ZIP, Linux x64/ARM64 AppImage/deb. Windows/Linux icons, signing configuration, Linux ABI/sandbox/FUSE dependencies, desktop integration and secure-store behavior still need work. Separate building from publishing; current `scripts/release.sh` combines Mac build, GitHub publication and Homebrew update. Clean-machine install/upgrade/uninstall checks and a truthful support matrix are release gates. Do not weaken Electron sandboxing to make a build launch.
 

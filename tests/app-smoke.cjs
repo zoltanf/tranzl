@@ -89,6 +89,10 @@ test('the real app serves IPC to its page, cannot navigate away and quits cleanl
     if (model) {
       const result = await page.evaluate(`window.tranzl.translate({ text: 'Good morning', targetLanguage: 'German', style: 'translate', effort: 'fast', requestId: 'smoke' })`, 20 * 60000);
       assert.equal(result.ok, true, result.error); assert.match(result.translation, /Guten Morgen/i);
+      // The status bar names what runs the model: a listed GPU device, or CPU (the Windows/Linux runtimes are CPU builds).
+      for (let i = 0; i < 100 && !/Ready/.test(await page.evaluate(`document.getElementById('status').textContent`)); i++) await sleep(100);
+      const status = await page.evaluate(`document.getElementById('status').textContent`);
+      assert.match(status, process.platform === 'darwin' ? /Ready .* GPU \(/ : /Ready .* CPU/, status);
     }
 
     page.close();
